@@ -1,0 +1,167 @@
+<form>
+  <label>Search Job Detail</label>
+
+  <fieldset>
+    <input type="text" token="sid"/>
+  </fieldset>
+
+  <searchTemplate>| rest /services/search/jobs/$sid$</searchTemplate>
+
+  <row>
+    <single>
+      <title>Total Jobs Found</title>
+      <option name="link.visible">false</option>
+      <searchPostProcess>stats count</searchPostProcess>
+    </single>
+    <single>
+      <title>Adhoc Jobs Found</title>
+      <option name="link.visible">false</option>
+      <searchPostProcess>stats count(eval(if(isSavedSearch=0, title, null()))) AS count</searchPostProcess>
+    </single>
+    <single>
+      <title>Scheduled Jobs Found</title>
+      <option name="link.visible">false</option>
+      <searchPostProcess>stats count(eval(if(isSavedSearch=1,isSavedSearch,null()))) AS count</searchPostProcess>
+    </single>
+  </row>
+
+  <row grouping="3,2,2">
+    <single>
+      <title>Time Spent</title>
+      <option name="link.visible">false</option>
+      <option name="field">startup_time</option>
+      <option name="underLabel">Startup</option>
+      <searchPostProcess>eval startup_time=coalesce('performance.dispatch.createProviderQueue.duration_secs', 'performance.dispatch.createdSearchResultInfrastructure.duration_secs', "None (no remotes)")</searchPostProcess>
+    </single>
+    <single>
+      <option name="link.visible">false</option>
+      <option name="field">local_wait</option>
+      <option name="underLabel">Waiting for Indexers</option>
+      <searchPostProcess>eval local_wait=coalesce('performance.dispatch.fetch.duration_secs', 0)</searchPostProcess>
+    </single>
+    <single>
+      <!--      <title>Total Time</title> -->
+      <option name="link.visible">false</option>
+      <option name="field">runDuration</option>
+      <option name="underLabel">Total</option>
+    </single>
+
+    <single>
+      <title>Search Space Consumption (bytes)</title>
+      <option name="link.visible">false</option>
+      <option name="field">diskUsage</option>
+      <option name="underLabel">on disk</option>
+    </single>
+    <single>
+      <!--      <title>Size on Disk</title> -->
+      <option name="link.visible">false</option>
+      <option name="field">bytes</option>
+      <option name="underLabel">from indexers</option>
+      <searchPostProcess>stats sum(performance.dispatch.stream.remote.*.output_count) AS * by sid | transpose | search column!="sid" | stats sum(row 1) AS bytes | eval bytes=tostring(bytes, "commas")</searchPostProcess>
+    </single>
+
+    <single>
+      <title>Scanned Events</title>
+      <option name="link.visible">false</option>
+      <option name="field">scanCount</option>
+      <option name="underLabel">Count</option>
+    </single>
+    <single>
+      <!--      <title>Scan Rate</title> -->
+      <option name="link.visible">false</option>
+      <option name="field">rate</option>
+      <option name="underLabel">rate</option>
+      <searchPostProcess>eval rate=if(scanCount=0, "N/A", round(scanCount / runDuration, 2) . " E/s")</searchPostProcess>
+    </single>
+  </row>
+
+  <row>
+    <single>
+      <title>Search String</title>
+      <option name="field">search</option>
+      <searchPostProcess>eval search=coalesce('request.search', eventSearch)</searchPostProcess>
+    </single>
+  </row>
+  <row>
+    <single>
+      <title>Event Search (if any)</title>
+      <option name="field">eventSearch</option>
+    </single>
+  </row>
+  <row>
+    <single>
+      <title>Remote Search (if any)</title>
+      <option name="field">remoteSearch</option>
+    </single>
+  </row>
+  <row>
+    <single>
+      <title>Reporting Search (if any)</title>
+      <option name="field">reportSearch</option>
+    </single>
+  </row>
+
+  <row>
+    <chart>
+      <title>Performance Histogram</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked100</option>
+      <searchPostProcess>search dispatchState=DONE
+| stats max(performance.command.search.index.*.invocations) AS * by sid
+| fillnull value=0 usec_1_8, usec_8_64, usec_64_512, usec_512_4096, usec_4096_32768, usec_32768_262144, usec_262144_inf
+| eval total=usec_1_8 + usec_8_64 + usec_64_512 + usec_512_4096 + usec_4096_32768 + usec_32768_262144 + usec_262144_inf
+| search total> 0
+| table sid, usec_262144_inf, usec_32768_262144, usec_4096_32768, usec_512_4096, usec_64_512, usec_8_64, usec_1_8
+      </searchPostProcess>
+    </chart>
+    <chart>
+      <title>Time spent in commands</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">pie</option>
+      <searchPostProcess>stats max(performance.command.*.duration_secs) AS *, max(performance.command.search.*.duration_secs) AS * | transpose | rename column AS command, "row 1" as time</searchPostProcess>
+    </chart>
+  </row>
+
+  <row>
+    <chart>
+      <title>Bytes Returned From Indexers</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <searchPostProcess>search dispatchState=DONE
+      | stats max(performance.dispatch.stream.remote.*.output_count) AS * by sid
+      | table sid, *
+      </searchPostProcess>
+    </chart>
+    <chart>
+      <title>Ratio of Bytes Returned vs. Time</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Hostname</option>
+      <option name="charting.axisTitleY.text">Bytes / Sec</option>
+      <option name="charting.legend.placement">none</option>
+      <searchPostProcess><![CDATA[search dispatchState=DONE
+| fields sid, performance.dispatch.stream.remote.*  | transpose
+| rex field=column "performance\.dispatch\.stream\.remote\.(?<hostname>.+?)\.(?<metric>[^\.]+)$"
+| eval sid=if(column="sid", 'row 1', null())
+| filldown sid
+| eval {metric}='row 1'
+| stats max(duration_secs) AS duration_secs
+   max(output_count) AS output_count
+   by sid, hostname
+| eval bytes_per_sec=round(output_count / duration_secs, 2)
+| chart max(bytes_per_sec) over hostname by sid]]></searchPostProcess>
+    </chart>
+  </row>
+
+  <row>
+    <table>
+      <title>Job Details</title>
+      <option name="drilldown">none</option>
+      <searchPostProcess>transpose</searchPostProcess>
+    </table>
+  </row>
+
+
+</form>
+

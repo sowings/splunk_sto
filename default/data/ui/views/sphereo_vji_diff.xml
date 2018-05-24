@@ -1,0 +1,148 @@
+<form>
+  <label>Search Job Comparator</label>
+
+  <fieldset>
+    <input type="text" label="First Search" token="sid"/>
+    <input type="text" label="Second Search" token="second_sid"/>
+  </fieldset>
+
+  <search id="sid_via_rest">
+    <query>| rest /services/search/jobs/$sid$ | eval search_comparison="First"
+| append [ | rest /services/search/jobs/$second_sid$ | eval search_comparison="Second"]</query>
+    <done>
+      <set token="rest_info_available">$job.sid$</set>
+    </done>
+  </search>
+
+  <row>
+    <panel>
+      <table>
+	<title>Notable Metrics</title>
+        <option name="link.visible">false</option>
+	<search base="sid_via_rest">
+	  <query>eval startup_time=coalesce('performance.dispatch.createProviderQueue.duration_secs', 'performance.dispatch.createdSearchResultInfrastructure.duration_secs', "None (no remotes)")
+| eval local_wait=coalesce('performance.dispatch.fetch.duration_secs', 0)
+| eval rate=if(scanCount=0, "N/A", round(scanCount / runDuration, 2) . " E/s")
+| sort search_comparison
+| table search_comparison, runDuration, startup_time, local_wait, runDuration, diskUsage, scanCount, eventCount, rate</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+  
+  <row>
+    <panel>
+      <single>
+        <title>Search String</title>
+        <option name="field">search</option>
+        <option name="link.visible">false</option>
+        <search base="sid_via_rest">
+          <query>eval search=coalesce('request.search', eventSearch)</query>
+        </search>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <single>
+      <title>Event Search (if any)</title>
+      <option name="field">eventSearch</option>
+      <option name="link.visible">false</option>
+      <search base="sid_via_rest"/>
+    </single>
+  </row>
+  <row>
+    <single>
+      <title>Remote Search (if any)</title>
+      <option name="field">remoteSearch</option>
+      <option name="link.visible">false</option>
+      <search base="sid_via_rest"/>
+    </single>
+  </row>
+  <row>
+    <single>
+      <title>Reporting Search (if any)</title>
+      <option name="field">reportSearch</option>
+      <option name="link.visible">false</option>
+      <search base="sid_via_rest"/>
+    </single>
+  </row>
+
+  <row>
+    <chart>
+      <title>Performance Histogram</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <search base="sid_via_rest">
+	<query>search dispatchState=DONE
+| stats max(performance.command.search.index.*.invocations) AS * by search_comparison
+| fillnull value=0 usec_1_8, usec_8_64, usec_64_512, usec_512_4096, usec_4096_32768, usec_32768_262144, usec_262144_inf
+| eval total=usec_1_8 + usec_8_64 + usec_64_512 + usec_512_4096 + usec_4096_32768 + usec_32768_262144 + usec_262144_inf
+| search total> 0
+| table search_comparison, usec_262144_inf, usec_32768_262144, usec_4096_32768, usec_512_4096, usec_64_512, usec_8_64, usec_1_8
+	</query>
+      </search>
+    </chart>
+    <chart>
+      <title>Time spent in commands</title>
+      <option name="link.visible">true</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <search base="sid_via_rest">
+	<query>stats max(performance.command.*.duration_secs) AS *, max(performance.command.search.*.duration_secs) AS * by search_comparison</query>
+      </search>
+    </chart>
+  </row>
+
+  <row>
+    <chart>
+      <title>Bytes Returned From Indexers</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <search base="sid_via_rest">
+	<query>search dispatchState=DONE
+      | stats max(performance.dispatch.stream.remote.*.output_count) AS * by search_comparison
+      | table search_comparison, *
+	</query>
+      </search>
+    </chart>
+    <chart>
+      <title>Ratio of Bytes Returned vs. Time</title>
+      <option name="link.visible">false</option>
+      <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Hostname</option>
+      <option name="charting.axisTitleY.text">Bytes / Sec</option>
+      <option name="charting.legend.placement">none</option>
+      <search base="sid_via_rest">
+	<query><![CDATA[search dispatchState=DONE
+| fields search_comparison, performance.dispatch.stream.remote.*  | transpose
+| rex field=column "performance\.dispatch\.stream\.remote\.(?<hostname>.+?)\.(?<metric>[^\.]+)$"
+| eval sid=if(column="sid", 'row 1', null())
+| filldown sid
+| eval {metric}='row 1'
+| stats max(duration_secs) AS duration_secs
+   max(output_count) AS output_count
+   by sid, hostname
+| eval bytes_per_sec=round(output_count / duration_secs, 2)
+| chart max(bytes_per_sec) over hostname by sid]]></query>
+      </search>
+    </chart>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+        <title>Job Details</title>
+        <option name="drilldown">none</option>
+        <search base="sid_via_rest">
+          <query>transpose</query>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+
+</form>
+

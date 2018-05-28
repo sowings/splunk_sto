@@ -256,11 +256,15 @@ data.search_props.sid::$sid$
 
   <row>
     <panel>
+      <input type="dropdown" token="intro_choice" searchWhenChanged="true">
+	<label>Performance Metric</label>
+	<choice value="max(data.mem_used)">Memory Used</choice>
+      </input>
       <chart>
 	<option name="charting.chart">line</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
-	  <query>| timechart max(data.mem_used)</query>
+	  <query>| timechart $intro_choice$</query>
 	</search>
       </chart>
     </panel>

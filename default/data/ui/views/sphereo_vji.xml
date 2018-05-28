@@ -260,6 +260,11 @@ data.search_props.sid::$sid$
       <input type="dropdown" token="intro_choice" searchWhenChanged="true">
 	<label>Performance Metric</label>
 	<choice value="max(data.mem_used)">Memory Used</choice>
+	<choice value="max(data.normalized_pct_cpu)">Normalized CPU</choice>
+	<choice value="max(data.pct_cpu)">CPU Usage</choice>
+	<choice value="max(data.read_mb)">Data Read (MB)</choice>
+	<choice value="max(data.fd_used)">Files Used</choice>
+	<default>max(data.mem_used)</default>
       </input>
       <chart>
 	<option name="charting.chart">line</option>

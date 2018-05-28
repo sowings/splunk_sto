@@ -7,6 +7,9 @@
 
   <search id="sid_via_rest">
     <query>| rest /services/search/jobs/$sid$</query>
+    <done>
+      <set token="rest_info_available">$job.sid$</set>
+    </done>
   </search>
 
   <row>
@@ -56,6 +59,7 @@
       <option name="link.visible">false</option>
       <option name="field">runDuration</option>
       <option name="underLabel">Total</option>
+      <search base="sid_via_rest"/>
     </single>
 
     <single>
@@ -63,6 +67,7 @@
       <option name="link.visible">false</option>
       <option name="field">diskUsage</option>
       <option name="underLabel">on disk</option>
+      <search base="sid_via_rest"/>
     </single>
     <single>
       <!--      <title>Size on Disk</title> -->
@@ -104,18 +109,21 @@
     <single>
       <title>Event Search (if any)</title>
       <option name="field">eventSearch</option>
+      <search base="sid_via_rest"/>
     </single>
   </row>
   <row>
     <single>
       <title>Remote Search (if any)</title>
       <option name="field">remoteSearch</option>
+      <search base="sid_via_rest"/>
     </single>
   </row>
   <row>
     <single>
       <title>Reporting Search (if any)</title>
       <option name="field">reportSearch</option>
+      <search base="sid_via_rest"/>
     </single>
   </row>
 

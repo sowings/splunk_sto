@@ -22,7 +22,8 @@ TERM($sid$) search_id='$sid$'
   <search id="sid_via_rest">
     <query>| rest /services/search/jobs/$sid$</query>
     <done>
-      <set token="rest_info_available">$job.sid$</set>
+      <set token="rest_info_sid">$job.sid$</set>
+      <eval token="rest_info_available">if($result.count$ != "0", "true", null())</eval>
     </done>
   </search>
 

@@ -46,7 +46,7 @@ data.search_props.sid::$sid$
   </row>
   
   
-  <row>
+  <row depends="$rest_info_available$">
     <single>
       <title>Total Jobs Found</title>
       <option name="link.visible">false</option>
@@ -70,7 +70,8 @@ data.search_props.sid::$sid$
     </single>
   </row>
 
-  <row grouping="3,2,2">
+  <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Time Spent</title>
       <option name="link.visible">false</option>
@@ -95,7 +96,8 @@ data.search_props.sid::$sid$
       <option name="underLabel">Total</option>
       <search base="sid_via_rest"/>
     </single>
-
+    </panel>
+    <panel>
     <single>
       <title>Search Space Consumption (bytes)</title>
       <option name="link.visible">false</option>
@@ -112,7 +114,8 @@ data.search_props.sid::$sid$
 	<query>stats sum(performance.dispatch.stream.remote.*.output_count) AS * by sid | transpose | search column!="sid" | stats sum(row 1) AS bytes | eval bytes=tostring(bytes, "commas")</query>
       </search>
     </single>
-
+    </panel>
+    <panel>
     <single>
       <title>Scanned Events</title>
       <option name="link.visible">false</option>
@@ -128,9 +131,11 @@ data.search_props.sid::$sid$
 	<query>eval rate=if(scanCount=0, "N/A", round(scanCount / runDuration, 2) . " E/s")</query>
       </search>
     </single>
+    </panel>
   </row>
 
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Search String</title>
       <option name="field">search</option>
@@ -138,30 +143,38 @@ data.search_props.sid::$sid$
 	<query>eval search=coalesce('request.search', eventSearch)</query>
       </search>
     </single>
+    </panel>
   </row>
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Event Search (if any)</title>
       <option name="field">eventSearch</option>
       <search base="sid_via_rest"/>
     </single>
+    </panel>
   </row>
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Remote Search (if any)</title>
       <option name="field">remoteSearch</option>
       <search base="sid_via_rest"/>
     </single>
+    </panel>
   </row>
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Reporting Search (if any)</title>
       <option name="field">reportSearch</option>
       <search base="sid_via_rest"/>
     </single>
+    </panel>
   </row>
 
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <chart>
       <title>Performance Histogram</title>
       <option name="link.visible">false</option>
@@ -177,6 +190,8 @@ data.search_props.sid::$sid$
 	</query>
       </search>
     </chart>
+    </panel>
+    <panel>
     <chart>
       <title>Time spent in commands</title>
       <option name="link.visible">false</option>
@@ -185,9 +200,11 @@ data.search_props.sid::$sid$
 	<query>stats max(performance.command.*.duration_secs) AS *, max(performance.command.search.*.duration_secs) AS * | transpose | rename column AS command, "row 1" as time</query>
       </search>
     </chart>
+    </panel>
   </row>
 
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <chart>
       <title>Bytes Returned From Indexers</title>
       <option name="link.visible">false</option>
@@ -199,6 +216,8 @@ data.search_props.sid::$sid$
 	</query>
       </search>
     </chart>
+    </panel>
+    <panel>  
     <chart>
       <title>Ratio of Bytes Returned vs. Time</title>
       <option name="link.visible">false</option>
@@ -220,9 +239,11 @@ data.search_props.sid::$sid$
 | chart max(bytes_per_sec) over hostname by sid]]></query>
       </search>
     </chart>
+    </panel>
   </row>
 
-  <row>
+  <row depends="$rest_info_available$">
+    <panel>
     <table>
       <title>Job Details</title>
       <option name="drilldown">none</option>
@@ -230,13 +251,14 @@ data.search_props.sid::$sid$
 	<query>transpose</query>
       </search>
     </table>
+    </panel>
   </row>
 
   <row>
     <panel>
       <chart>
 	<option name="charting.chart">line</option>
-	<option name="charting.nullValueMode">connect</option>
+	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
 	  <query>| timechart max(data.mem_used)</query>
 	</search>

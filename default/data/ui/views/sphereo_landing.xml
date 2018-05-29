@@ -1,0 +1,8 @@
+<dashboard>
+  <!-- -*-mode: nXML; auto-fill-mode: -1; fill-column: 99999 -*- -->
+  <row>
+    <panel>
+      <html><h2>Welcome to the Splunk Search Tracking and Optimization App</h2></html>
+    </panel>
+  </row>
+</dashboard>

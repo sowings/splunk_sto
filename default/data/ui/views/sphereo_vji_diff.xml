@@ -14,6 +14,39 @@
     </done>
   </search>
 
+  <search id="sid_via_audit">
+    <query>`get_audit_index` TERM(action=search)
+(TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
+TERM($sid$) OR TERM($second_sid$)
+search_id='$sid$' OR search_id='$second_sid$'
+| stats earliest(user) earliest(savedsearch_name) earliest(search) latest(total_run_time) latest(scan_count) latest(event_count) latest(search_startup_time) latest(searched_buckets) latest(eliminated_buckets) latest(considered_events) latest(total_slices) latest(decompressed_slices) by search_id
+    </query>
+    <done>
+      <set token="audit_one_et"/>
+      <set token="audit_one_lt"/>
+      <set token="audit_two_et"/>
+      <set token="audit_two_lt"/>
+    </done>
+  </search>
+
+  <search id="sid_via_introspection">
+    <query>`get_introspection_index` sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
+data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
+| sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used) by data.search_props.sid
+</query>
+    <done>
+    </done>
+  </search>
+
+  <row>
+    <panel>
+      <table>
+	<title>Salient audit log details</title>
+	<search base="sid_via_audit"/>
+      </table>
+    </panel>
+  </row>
+  
   <row>
     <panel>
       <table>
@@ -143,6 +176,27 @@
     </panel>
   </row>
 
+
+  <row>
+    <panel>
+      <input type="dropdown" token="intro_choice" searchWhenChanged="true">
+	<label>Performance Metric</label>
+	<choice value="max(data.mem_used)">Memory Used</choice>
+	<choice value="max(data.normalized_pct_cpu)">Normalized CPU</choice>
+	<choice value="max(data.pct_cpu)">CPU Usage</choice>
+	<choice value="max(data.read_mb)">Data Read (MB)</choice>
+	<choice value="max(data.fd_used)">Files Used</choice>
+	<default>max(data.mem_used)</default>
+      </input>
+      <chart>
+	<option name="charting.chart">line</option>
+	<option name="charting.chart.nullValueMode">connect</option>
+        <search base="sid_via_introspection">
+	  <query>| timechart $intro_choice$ by data.search_props.sid</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
 
 </form>
 

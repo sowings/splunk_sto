@@ -1,5 +1,5 @@
 <nav>
-  <view name="sphero_landing" />
+  <view name="sto_landing" />
   
   <collection label="Scheduled Searches">
     <view name="sto_scheduled_runs" />

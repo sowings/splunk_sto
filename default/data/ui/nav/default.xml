@@ -1,22 +1,26 @@
 <nav>
   <view name="sphero_landing" />
   
-  <collection label="Taxonomy" >
-    <view name="sphereo_taxonomy" />
-  </collection>
-  <collection label="Dashboards">
-    <view name="sphereo_dash_landing" />
-    <view name="sphereo_dash_browser" />
-  </collection>
-  <collection label="Scheduled (Saved) Searches">
+  <collection label="Scheduled Searches">
     <view name="sphereo_scheduled_runs" />
     <view name="sphereo_scheduler_assistant" />
     <view name="sphereo_scheduler_rebuild" />
   </collection>
-  <collection label="Data Models">
+  <collection label="Acceleration">
+    <view name="sto_dma_overview" />
+    <divider />
+    <view name="sto_ra_overview" />
+  </collection>
+  <collection label="Dashboards">
+    <view name="sto_dash_landing" />
+    <view name="sto_dash_browser" />
+  </collection>
+  <collection label="Taxonomy" >
+    <view name="sphereo_taxonomy" />
   </collection>
   <collection label="Inspection">
     <view name="sphereo_vji" />
+    <view name="sphereo_vji_diff" />
     <view name="sphereo_deboer" />
   </collection>
 </nav>

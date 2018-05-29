@@ -47,6 +47,16 @@ data.search_props.sid::$sid$
   </row>
   
   
+  <row rejects="$rest_info_available$">
+    <single>
+      <title>REST Job Info Unavailable</title>
+      <option name="field">label</option>
+      <search>
+	<query>| makeresults | eval label="REST Info Unavailable; Job Cancelled or Expired"</query>
+      </search>
+    </single>
+  </row>
+
   <row depends="$rest_info_available$">
     <single>
       <title>Total Jobs Found</title>

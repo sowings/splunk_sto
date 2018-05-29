@@ -2,9 +2,9 @@
   <view name="sphero_landing" />
   
   <collection label="Scheduled Searches">
-    <view name="sphereo_scheduled_runs" />
-    <view name="sphereo_scheduler_assistant" />
-    <view name="sphereo_scheduler_rebuild" />
+    <view name="sto_scheduled_runs" />
+    <view name="sto_scheduler_assistant" />
+    <view name="sto_scheduler_rebuild" />
   </collection>
   <collection label="Acceleration">
     <view name="sto_dma_overview" />
@@ -16,11 +16,11 @@
     <view name="sto_dash_browser" />
   </collection>
   <collection label="Taxonomy" >
-    <view name="sphereo_taxonomy" />
+    <view name="sto_taxonomy" />
   </collection>
   <collection label="Inspection">
-    <view name="sphereo_vji" />
-    <view name="sphereo_vji_diff" />
-    <view name="sphereo_deboer" />
+    <view name="sto_vji" />
+    <view name="sto_vji_diff" />
+    <view name="sto_deboer" />
   </collection>
 </nav>

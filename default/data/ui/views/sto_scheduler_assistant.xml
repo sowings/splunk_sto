@@ -23,7 +23,8 @@
       <default>9-17</default>
     </input>
   </fieldset>
-  <searchTemplate>
+  <search id="sto_scheduler_assistant_master">
+    <query>
     <![CDATA[
 | rest "/servicesNS/-/-/admin/savedsearch/" search="is_scheduled=1" search="disabled=0" splunk_server=local
   [ | makeresults | eval earliest_time=relative_time(now(), "-0s@s") | return earliest_time ]
@@ -32,16 +33,19 @@
 | mvexpand scheduled_times 
 | rename scheduled_times as _time eai:acl.app as app eai:acl.owner as user title as search   
     ]]>
-  </searchTemplate>
+    </query>
+  </search>
   <!-- <![CDATA[ index=_internal host="dbitincka.local" source=*splunkd.log CASE(INFO) loader Detected 
 | head 1 | rex "(?i)detected\s(?<cores>\d+).*?CPUs" ]]> -->
   <row>
     <single>
       <!-- number of cores-->
-      <searchString>
+      <search>
+	<query>
         <![CDATA[index=_internal source=*splunkd.log Detected CPUs host=$host$| head 1 | rex "(?i)detected\s(?<cores>\d+)\s\(" | stats values(cores) as cores by host | outputlookup cores.csv | fields cores
 ]]>
-      </searchString>
+        </query>
+      </search>
       <option name="underLabel">Cores</option>
     </single>
     <single>
@@ -73,49 +77,59 @@
   </row>
   <row grouping="4">
     <single>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats dc(search)]]>
-      </searchPostProcess>
+        </query>
+      </search>
       <option name="underLabel">Unique Searches</option>
     </single>
     <single>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats count]]>
-      </searchPostProcess>
+        </query>
+      </search>
       <option name="underLabel">Total Search Runs</option>
     </single>
     <single>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| eval hour=strftime(_time, "%H") 
 | eval weekday=strftime(_time, "%u") 
 | eval bhours="$bhours$"
 | rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
 | stats count(eval(if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,true(),''))) as foo ]]>
-      </searchPostProcess>
+        </query>
+      </search>
       <option name="underLabel">Business Hour Runs</option>
     </single>
     <single>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| eval hour=strftime(_time, "%H") 
 | eval weekday=strftime(_time, "%u") 
 | eval bhours="$bhours$"
 | rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
 | stats count(eval(if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,false(),true()))) as foo ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="underLabel">Non-Business Hour Runs</option>
     </single>
   </row>
   <row>
     <chart>
       <title>Business Hours vs. Non-Business Hour Runs</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| eval hour=strftime(_time, "%H") 
 | eval weekday=strftime(_time, "%u") 
 | eval bhours="$bhours$"
 | rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
 | eval business_hour=if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,"1","0") 
 | timechart count(eval(if(business_hour==1,"1",''))) as BusinessHour, count(eval(if(business_hour==0,"1",''))) as Non-BusinessHour]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="charting.chart">column</option>
       <option name="charting.chart.stackMode">stacked</option>
       <option name="charting.axisTitleX.text">Time</option>
@@ -125,9 +139,11 @@
   <row>
     <chart>
       <title>Anticipated Scheduled Searches Workload :: Top 10 Applications</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| timechart span=1h count by app limit=10]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="charting.chart">column</option>
       <option name="charting.chart.stackMode">stacked</option>
       <option name="charting.axisTitleX.text">Time</option>
@@ -137,9 +153,11 @@
   <row>
     <chart>
       <title>Anticipated Scheduled Searches Workload :: Top 10 Users</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| timechart span=1h count by user limit=10 ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="charting.chart">column</option>
       <option name="charting.chart.stackMode">stacked</option>
       <option name="charting.axisTitleX.text">Time</option>
@@ -149,30 +167,37 @@
   <row>
     <table>
       <title>Most Active Searches - Top 10</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats count(search) as count by search cron_schedule | sort 10 -count  ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="dataOverlayMode">heatmap</option>
     </table>
     <table>
       <title>Most Active Apps - Top 10</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats count by app| sort 10 -count  ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="dataOverlayMode">heatmap</option>
     </table>
     <table>
       <title>Most Active Users - Top 10</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats count by user| sort 10 -count  ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <option name="dataOverlayMode">heatmap</option>
     </table>
   </row>
   <row>
     <table id="table1">
       <title>Most Co-Occuring Searches - Top 10</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[| stats count list(search) as searches list(cron_schedule) as cron by _time 
 | where mvcount(searches)>1 
 | eval searches=mvjoin(searches," | ") 
@@ -185,14 +210,16 @@
 | eval percent=100*'Co-Occurences'/sum 
 | fields - sum
            ]]>
-      </searchPostProcess>
+	</query>
+      </search>
       <!-- <option name="dataOverlayMode">heatmap</option> -->
     </table>
   </row>
   <row>
     <table id="table2">
       <title>Scheduled Searches Calendar - Number of Runs Business (B) vs. Non-Business (NB)</title>
-      <searchPostProcess>
+      <search base="sto_scheduler_assistant_master">
+	<query>
         <![CDATA[|  eval day=strftime(_time, "%F") 
 | eval hour=strftime(_time, "%H") 
 | eval weekday=strftime(_time, "%u")
@@ -202,16 +229,19 @@
 | stats count by search day business | eval combo=count.":".business 
 | chart list(combo) over search by day 
   ]]>
-      </searchPostProcess>
+	</query>
+      </search>
     </table>
   </row>
   <!--
            
       <table>  
   <title>Most Frequent Schedules</title>
-<searchPostProcess>
+<search base="sto_scheduler_assistant_master">
+	<query>
       <![CDATA[| stats count by cron_schedule| sort -count  ]]>
-    </searchPostProcess>
+	</query>
+    </search>
 
   </table> -->
 </form>

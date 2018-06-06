@@ -1,0 +1,217 @@
+<form script="table_data_bar.js" stylesheet="table_data_bar.css">
+  <label>Scheduler Assistant</label>
+  <fieldset autoRun="true">
+    <input type="dropdown" token="host">
+      <!-- <choice value="local">local</choice>
+   <default>local</default> -->
+      <label>Search Head:</label>
+      <search>
+        <query>| rest splunk_server=local /services/server/info | table host</query>
+      </search>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
+    </input>
+    <input type="dropdown" token="window">
+      <!-- <choice value="+1h@h">+1 Hour (+1h@h)</choice> -->
+      <default>+2d@d</default>
+      <choice value="+2d@d">+1 Day (+2d@d)</choice>
+      <choice value="+8d@d">+7 Days (+8d@d)</choice>
+      <label>Future Time Window:</label>
+    </input>
+    <input type="text" token="bhours">
+      <label>Business Hours: (ex. 9-17)</label>
+      <default>9-17</default>
+    </input>
+  </fieldset>
+  <searchTemplate>
+    <![CDATA[
+| rest "/servicesNS/-/-/admin/savedsearch/" search="is_scheduled=1" search="disabled=0" splunk_server=local
+  [ | makeresults | eval earliest_time=relative_time(now(), "-0s@s") | return earliest_time ]
+  [ | makeresults | eval latest_time=relative_time(now(), "$window$") | return latest_time ]
+| table splunk_server eai:acl.app eai:acl.owner cron_schedule title scheduled_times 
+| mvexpand scheduled_times 
+| rename scheduled_times as _time eai:acl.app as app eai:acl.owner as user title as search   
+    ]]>
+  </searchTemplate>
+  <!-- <![CDATA[ index=_internal host="dbitincka.local" source=*splunkd.log CASE(INFO) loader Detected 
+| head 1 | rex "(?i)detected\s(?<cores>\d+).*?CPUs" ]]> -->
+  <row>
+    <single>
+      <!-- number of cores-->
+      <searchString>
+        <![CDATA[index=_internal source=*splunkd.log Detected CPUs host=$host$| head 1 | rex "(?i)detected\s(?<cores>\d+)\s\(" | stats values(cores) as cores by host | outputlookup cores.csv | fields cores
+]]>
+      </searchString>
+      <option name="underLabel">Cores</option>
+    </single>
+    <single>
+      <search id="limits_search">
+        <query>| rest /services/server/status/limits/search-concurrency splunk_server=$host$</query>
+        <earliest>0</earliest>
+        <latest></latest>
+      </search>
+      <option name="underLabel">Max Hist. Concurrent Searches</option>
+      <option name="linkView">search</option>
+      <option name="drilldown">none</option>
+      <option name="field">max_hist_searches</option>
+    </single>
+    <single>
+      <search base="limits_search"></search>
+      <option name="underLabel">Max RT Concurrent Searches</option>
+      <option name="field">max_rt_searches</option>
+    </single>
+    <single>
+      <search base="limits_search"></search>
+      <option name="underLabel">Max Sched. Concurrent Searches</option>
+      <option name="field">max_hist_scheduled_searches</option>
+    </single>
+    <single>
+      <search base="limits_search"></search>
+      <option name="underLabel">Max Summ. Concurrent Searches</option>
+      <option name="field">max_auto_summary_searches</option>
+    </single>
+  </row>
+  <row grouping="4">
+    <single>
+      <searchPostProcess>
+        <![CDATA[| stats dc(search)]]>
+      </searchPostProcess>
+      <option name="underLabel">Unique Searches</option>
+    </single>
+    <single>
+      <searchPostProcess>
+        <![CDATA[| stats count]]>
+      </searchPostProcess>
+      <option name="underLabel">Total Search Runs</option>
+    </single>
+    <single>
+      <searchPostProcess>
+        <![CDATA[| eval hour=strftime(_time, "%H") 
+| eval weekday=strftime(_time, "%u") 
+| eval bhours="$bhours$"
+| rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
+| stats count(eval(if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,true(),''))) as foo ]]>
+      </searchPostProcess>
+      <option name="underLabel">Business Hour Runs</option>
+    </single>
+    <single>
+      <searchPostProcess>
+        <![CDATA[| eval hour=strftime(_time, "%H") 
+| eval weekday=strftime(_time, "%u") 
+| eval bhours="$bhours$"
+| rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
+| stats count(eval(if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,false(),true()))) as foo ]]>
+      </searchPostProcess>
+      <option name="underLabel">Non-Business Hour Runs</option>
+    </single>
+  </row>
+  <row>
+    <chart>
+      <title>Business Hours vs. Non-Business Hour Runs</title>
+      <searchPostProcess>
+        <![CDATA[| eval hour=strftime(_time, "%H") 
+| eval weekday=strftime(_time, "%u") 
+| eval bhours="$bhours$"
+| rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
+| eval business_hour=if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,"1","0") 
+| timechart count(eval(if(business_hour==1,"1",''))) as BusinessHour, count(eval(if(business_hour==0,"1",''))) as Non-BusinessHour]]>
+      </searchPostProcess>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <option name="charting.axisTitleX.text">Time</option>
+      <option name="charting.axisTitleY.text">Count</option>
+    </chart>
+  </row>
+  <row>
+    <chart>
+      <title>Anticipated Scheduled Searches Workload :: Top 10 Applications</title>
+      <searchPostProcess>
+        <![CDATA[| timechart span=1h count by app limit=10]]>
+      </searchPostProcess>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <option name="charting.axisTitleX.text">Time</option>
+      <option name="charting.axisTitleY.text">Count</option>
+    </chart>
+  </row>
+  <row>
+    <chart>
+      <title>Anticipated Scheduled Searches Workload :: Top 10 Users</title>
+      <searchPostProcess>
+        <![CDATA[| timechart span=1h count by user limit=10 ]]>
+      </searchPostProcess>
+      <option name="charting.chart">column</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <option name="charting.axisTitleX.text">Time</option>
+      <option name="charting.axisTitleY.text">Count</option>
+    </chart>
+  </row>
+  <row>
+    <table>
+      <title>Most Active Searches - Top 10</title>
+      <searchPostProcess>
+        <![CDATA[| stats count(search) as count by search cron_schedule | sort 10 -count  ]]>
+      </searchPostProcess>
+      <option name="dataOverlayMode">heatmap</option>
+    </table>
+    <table>
+      <title>Most Active Apps - Top 10</title>
+      <searchPostProcess>
+        <![CDATA[| stats count by app| sort 10 -count  ]]>
+      </searchPostProcess>
+      <option name="dataOverlayMode">heatmap</option>
+    </table>
+    <table>
+      <title>Most Active Users - Top 10</title>
+      <searchPostProcess>
+        <![CDATA[| stats count by user| sort 10 -count  ]]>
+      </searchPostProcess>
+      <option name="dataOverlayMode">heatmap</option>
+    </table>
+  </row>
+  <row>
+    <table id="table1">
+      <title>Most Co-Occuring Searches - Top 10</title>
+      <searchPostProcess>
+        <![CDATA[| stats count list(search) as searches list(cron_schedule) as cron by _time 
+| where mvcount(searches)>1 
+| eval searches=mvjoin(searches," | ") 
+| eval cron=mvjoin(cron," | ") 
+| stats count as Co-Occurences by searches cron
+| sort 10 -Co-Occurences
+| makemv delim="|" searches 
+| makemv delim="|" cron
+| eventstats sum(Co-Occurences) as sum 
+| eval percent=100*'Co-Occurences'/sum 
+| fields - sum
+           ]]>
+      </searchPostProcess>
+      <!-- <option name="dataOverlayMode">heatmap</option> -->
+    </table>
+  </row>
+  <row>
+    <table id="table2">
+      <title>Scheduled Searches Calendar - Number of Runs Business (B) vs. Non-Business (NB)</title>
+      <searchPostProcess>
+        <![CDATA[|  eval day=strftime(_time, "%F") 
+| eval hour=strftime(_time, "%H") 
+| eval weekday=strftime(_time, "%u")
+| eval bhours="$bhours$"
+| rex field=bhours "(?<bhour_start>\d+)-(?<bhour_end>\d+)"
+| eval business=if(weekday<6 AND hour>=bhour_start AND hour<bhour_end,"B","NB") 
+| stats count by search day business | eval combo=count.":".business 
+| chart list(combo) over search by day 
+  ]]>
+      </searchPostProcess>
+    </table>
+  </row>
+  <!--
+           
+      <table>  
+  <title>Most Frequent Schedules</title>
+<searchPostProcess>
+      <![CDATA[| stats count by cron_schedule| sort -count  ]]>
+    </searchPostProcess>
+
+  </table> -->
+</form>

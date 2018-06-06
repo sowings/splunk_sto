@@ -6,7 +6,7 @@
    <default>local</default> -->
       <label>Search Head:</label>
       <search>
-        <query>| rest splunk_server=local /services/server/info | table host</query>
+        <query>| rest splunk_server_group=dmc_group_search_head /services/server/info | table host</query>
       </search>
       <fieldForLabel>host</fieldForLabel>
       <fieldForValue>host</fieldForValue>
@@ -26,7 +26,7 @@
   <search id="sto_scheduler_assistant_master">
     <query>
     <![CDATA[
-| rest "/servicesNS/-/-/admin/savedsearch/" search="is_scheduled=1" search="disabled=0" splunk_server=local
+| rest "/servicesNS/-/-/admin/savedsearch/" search="is_scheduled=1" search="disabled=0" splunk_server=$host$
   [ | makeresults | eval earliest_time=relative_time(now(), "-0s@s") | return earliest_time ]
   [ | makeresults | eval latest_time=relative_time(now(), "$window$") | return latest_time ]
 | table splunk_server eai:acl.app eai:acl.owner cron_schedule title scheduled_times 

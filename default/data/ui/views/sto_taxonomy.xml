@@ -26,7 +26,7 @@
 | rename comment AS "Set some things up for display"
 | eval "Show Search"="Click Here"
 | eval "Short SID"=replace(search_id, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
-| `search_perf_flags`
+| `sto_search_perf_flags`
 | sort - total_run_time]]></query>
   </search>
 

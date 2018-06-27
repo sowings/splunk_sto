@@ -1,5 +1,5 @@
 <form>
-  <label>Search Job Detail</label>
+  <label>Search Job Detail ("Visual" Job Inspector)</label>
 
   <fieldset>
     <input type="dropdown" token="srv" searchWhenChanged="true">

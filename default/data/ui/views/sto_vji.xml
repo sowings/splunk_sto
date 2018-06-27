@@ -22,7 +22,27 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
     <query>`get_audit_index` TERM(action=search)
 (TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
 TERM($sid$) search_id='$sid$'    
-| stats earliest(user) earliest(savedsearch_name) earliest(search) latest(total_run_time) latest(scan_count) latest(event_count) latest(search_startup_time) latest(searched_buckets) latest(eliminated_buckets) latest(considered_events) latest(total_slices) latest(decompressed_slices)
+| stats earliest(user) AS user
+    earliest(savedsearch_name) AS savedsearch_name
+    earliest(search) AS search_string
+    latest(total_run_time) AS total_run_time
+    latest(scan_count) AS scan_count
+    latest(event_count) AS event_count
+    latest(search_startup_time) AS search_startup_time
+    latest(searched_buckets) AS searched_buckets
+    latest(eliminated_buckets) AS eliminated_buckets
+    latest(considered_events) AS considered_events
+    latest(total_slices) AS total_slices
+    latest(decompressed_slices) AS decompressed_slices
+| rename user AS User, savedsearch_name AS "Saved Search",
+    search_string AS "Search String", total_run_time AS "Run Time (sec)",
+    scan_count AS "Scanned Events", event_count AS "Matching Events",
+    search_startup_time AS "Startup Time",
+    searched_buckets AS "Buckets in Time Range",
+    eliminated_buckets AS "Bloom Filter Eliminated Buckets",
+    considered_events AS "Events in Matching Buckets",
+    total_slices AS "Slices in Matching Buckets",
+    decompressed_slices AS "Slices Decompressed"
     </query>
     <done>
       <set token="audit_info_available">$job.sid$</set>

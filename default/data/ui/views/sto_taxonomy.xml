@@ -1,0 +1,258 @@
+<form>
+  <label>Search Taxonomy</label>
+  <fieldset>
+    <input type="time">
+      <default>Last 60 minutes</default>
+    </input>
+    <input type="text" token="sh">
+    </input>
+  </fieldset>
+
+  <search id="timed_audit">
+    <query><![CDATA[`get_audit_index` host="$sh$" TERM(action=search) TERM(info=granted) OR TERM(info=completed)
+| fields _time action info user search_id search total_run_time event_count result_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
+| eval search_id=trim(search_id, "'")
+| rex field=search_id "(?<search_family>scheduler|subsearch)_"
+| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "(?<dash_searchc_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
+| stats max(eval(if(info="completed", total_run_time, 0))) AS done min(_time) AS _time list(_time) AS times list(action) AS actions list(info) as infos max(*) AS * by search_id
+| eval search_id_and_times=search_id . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "granted"))) - 1) . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "completed"))) + 1)
+| search done>0 search!=""
+| eval search_lt=round(search_lt), search_et=round(search_et)
+| eval search_span=search_lt - search_et
+| eval search_cost=((searched_buckets * 1) + (eliminated_buckets * 2) + (decompressed_slices * 16)) / search_span
+| eval span_pretty=tostring(search_span, "duration")
+| eval search_savings=search_cost / (scan_count / event_count)
+| eval search=trim(search, "'")
+| rename comment AS "Set some things up for display"
+| eval "Show Search"="Click Here"
+| eval "Short SID"=replace(search_id, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| `search_perf_flags`
+| sort - total_run_time]]></query>
+  </search>
+
+  <search base="timed_audit" id="scheduler_family">
+    <query>search search_family="scheduler"</query>
+  </search>
+  <search base="timed_audit" id="dashboard_family">
+    <query>search search_family="dashboard"</query>
+  </search>
+  <search base="timed_audit" id="adhoc_family">
+    <query>search search_family="adhoc"</query>
+  </search>
+  <search base="timed_audit" id="subsearch_family">
+    <query>search search_family="subsearch"</query>
+  </search>
+
+  <row>
+    <panel>
+      <single>
+	<title>Total Searches Found in Interval</title>
+	<search base="timed_audit">
+	  <query>| stats dc(search_id)</query>
+	</search>
+      </single>
+    </panel>
+    <panel>
+      <single>
+	<title>Scheduled Searches</title>
+	<option name="underLabel">Scheduled</option>
+	<search base="scheduler_family">
+	  <query>| stats count</query>
+	</search>
+      </single>
+    </panel>
+    <panel>
+      <title>Searches by Type</title>
+      <single>
+	<option name="underLabel">Dashboard</option>
+	<search base="dashboard_family">
+	  <query>| stats count</query>
+	</search>
+      </single>
+    </panel>
+    <panel>
+      <single>
+	<option name="underLabel">Ad-Hoc</option>
+	<search base="adhoc_family">
+	  <query>| stats count</query>
+	</search>
+      </single>
+    </panel>
+    <panel>
+      <single>
+	<option name="underLabel">Subsearch</option>
+	<search base="subsearch_family">
+	  <query>| stats count</query>
+	</search>
+      </single>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+The searches listed in this top panel are <i>scheduled</i> searches. This
+means that they run whether anyone is looking. Of the "search slots" available
+to the system scheduled searches are permitted to run only a
+fraction. Searches that run extraordinarily long in this category can hold up
+search slots that other scheduled searches would want to use. Optimizing these
+is often a priority, so that this set of searches running in the background
+does not steal resources from <emph>interactive</emph> search behavior, such
+as adhoc searches and dashboards.
+      </html>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Scheduled Searches</title>
+	<fields>["Short SID", "user", "total_run_time", "flags", "_time", "search_et", "search_lt", "span_pretty", "searched_buckets", "eliminated_buckets", "total_slices", "decompressed_slices", "scan_count", "event_count", "Show Search"]</fields>
+	<search base="scheduler_family">
+<!--	  <query>table search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
+	</search>
+        <drilldown>
+	  <condition field="Show Search">
+	    <set token="show_search_scheduled">$row.search$</set>
+	  </condition>
+	  <condition field="Short SID">
+<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
+	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+          </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$show_search_scheduled$">
+    <html>
+      <h3>Search String</h3>
+      <div class="custom-result-value">$show_search_scheduled$</div>
+    </html>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+This collection represent searches that have been launched by
+dashboards. Sometimes these run repeatedly because of a refresh statement in
+the dashboard itself. Typically, all of the searches in a given dashboard
+start at the same time. If a dashboard has a lot of searches in it, it might
+have an outsized impact on the system for just one user.
+<p/>
+Further, because these searches are by nature interactive, a long-running
+search herecan represent time lost by the Splunk user who has to wait for
+those searches to complete.
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+	<title>Dashboard Searches</title>
+	<fields>["Short SID", "user", "total_run_time", "flags", "_time", "search_et", "search_lt", "span_pretty", "searched_buckets", "eliminated_buckets", "total_slices", "decompressed_slices", "scan_count", "event_count", "Show Search"]</fields>
+        <search base="dashboard_family">
+<!--	  <query>table search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
+	</search>
+        <drilldown>
+	  <condition field="Show Search">
+	    <set token="show_search_dashboard">$row.search$</set>
+	  </condition>
+	  <condition field="Short SID">
+<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
+	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+          </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$show_search_dashboard$">
+    <html>
+      <h3>Search String</h3>
+      <div class="custom-result-value">$show_search_dashboard$</div>
+    </html>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+The ad-hoc searches listed here are those being run directly by users within
+the search bar. Because they are only being run interactively, the need for
+optimizing them is perhaps lower priority, since there's no "background" load
+induced on the system by these searches. Further, a single user sat at the
+search bar is only going to be able to run one search at a time, so even if
+they write a bad search, their impact on the system is reduced.
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+	<title>Ad-Hoc Searches</title>
+	<fields>["Short SID", "user", "total_run_time", "flags", "_time", "search_et", "search_lt", "span_pretty", "searched_buckets", "eliminated_buckets", "total_slices", "decompressed_slices", "scan_count", "event_count", "Show Search"]</fields>
+	<search base="adhoc_family">
+<!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
+	</search>
+        <drilldown>
+	  <condition field="Show Search">
+	    <set token="show_search_adhoc">$row.search$</set>
+	  </condition>
+	  <condition field="Short SID">
+<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
+	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+          </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$show_search_adhoc$">
+    <html>
+      <h3>Search String</h3>
+      <div class="custom-result-value">$show_search_adhoc$</div>
+    </html>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+These searches are run as subsearches within a larger search string. This
+could be the argument to some specific search commands that require a
+subsearch, such as "join" or "append". These could also be crafted to
+dynamically generate search terms for their outer search (such as
+programmatically adjusting the earliest and latest time bounds). Subsearch
+execution in Splunk occurs before the main search, and in the case of an
+interactive search, will appear to "hang" during the runtime of the
+subsearch. It's only when the outer search begins running and streaming events
+that the user is given any indication that work is occurring. For that reason,
+the runtime of these should be kept as low as possible.
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+	<title>Subsearches</title>
+	<fields>["Short SID", "user", "total_run_time", "flags", "_time", "search_et", "search_lt", "span_pretty", "searched_buckets", "eliminated_buckets", "total_slices", "decompressed_slices", "scan_count", "event_count", "Show Search"]</fields>
+	<search base="subsearch_family">
+<!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
+	</search>
+        <drilldown>
+	  <condition field="Show Search">
+	    <set token="show_search_subsearch">$row.search$</set>
+	  </condition>
+	  <condition field="Short SID">
+<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
+	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+          </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$show_search_subsearch$">
+    <html>
+      <h3>Search String</h3>
+      <div class="custom-result-value">$show_search_subsearch$</div>
+    </html>
+  </row>
+</form>
+     
+	 

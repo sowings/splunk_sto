@@ -142,6 +142,7 @@ data.search_props.sid::$sid$
       <option name="link.visible">false</option>
       <option name="field">scanCount</option>
       <option name="underLabel">Count</option>
+      <search base="sid_via_rest"/>
     </single>
     <single>
       <!--      <title>Scan Rate</title> -->

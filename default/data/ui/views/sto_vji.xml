@@ -2,6 +2,16 @@
   <label>Search Job Detail</label>
 
   <fieldset>
+    <input type="dropdown" token="srv" searchWhenChanged="true">
+      <label>Search Head</label>
+      <choice value="*">All Search Heads</choice>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>splunk_server</fieldForLabel>
+      <search>
+	<query>| rest /services/server/info splunk_server=*</query>
+      </search>
+    </input>
+    
     <input type="text" token="sid"/>
   </fieldset>
 
@@ -20,10 +30,10 @@ TERM($sid$) search_id='$sid$'
   </search>
 
   <search id="sid_via_rest">
-    <query>| rest /services/search/jobs/$sid$</query>
+    <query>| rest /services/search/jobs/$sid$ splunk_server="$srv$"</query>
     <done>
       <set token="rest_info_sid">$job.sid$</set>
-      <eval token="rest_info_available">if($result.count$ != "0", "true", null())</eval>
+      <eval token="rest_info_available">if($result.count$ == "0", null(), "true")</eval>
     </done>
   </search>
 

@@ -19,7 +19,7 @@
 (TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
 TERM($sid$) OR TERM($second_sid$)
 search_id='$sid$' OR search_id='$second_sid$'
-| stats earliest(user) earliest(savedsearch_name) earliest(search) latest(total_run_time) latest(scan_count) latest(event_count) latest(search_startup_time) latest(searched_buckets) latest(eliminated_buckets) latest(considered_events) latest(total_slices) latest(decompressed_slices) by search_id
+| stats earliest(user) AS User earliest(savedsearch_name) AS "Search Name" earliest(search) AS "Search String" latest(total_run_time) AS "Run Time (sec)" latest(scan_count) AS "Scan Count" latest(event_count) AS "Event Count" latest(search_startup_time) AS "Startup Time" latest(searched_buckets) AS "Searched Buckets" latest(eliminated_buckets) AS "Skipped Buckets (bloomfilters)" latest(considered_events) AS "Considered Events" latest(total_slices) AS "Bucket Slices" latest(decompressed_slices) AS "Decompressed Slices" by search_id
     </query>
     <done>
       <set token="audit_one_et"/>

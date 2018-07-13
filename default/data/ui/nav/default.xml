@@ -2,6 +2,7 @@
   <view name="sto_landing" />
   
   <collection label="Scheduled Searches">
+    <view name="sto_scheduled_overview" />
     <view name="sto_scheduled_runs" />
     <view name="sto_scheduler_assistant" />
     <view name="sto_scheduler_rebuild" />
@@ -12,8 +13,10 @@
     <view name="sto_ra_overview" />
   </collection>
   <collection label="Dashboards">
-    <view name="sto_dash_landing" />
+    <view name="sto_dash_overview" />
+    <view name="sto_dash_activity" />
     <view name="sto_dash_browser" />
+    <view name="sto_dash_load_time" />
   </collection>
   <collection label="Taxonomy" >
     <view name="sto_taxonomy" />

@@ -1,10 +1,11 @@
 <form>
   <label>Search Taxonomy</label>
   <fieldset>
+    <input type="text" token="sh">
+      <label>Search Head</label>
+    </input>
     <input type="time">
       <default>Last 60 minutes</default>
-    </input>
-    <input type="text" token="sh">
     </input>
   </fieldset>
 
@@ -13,7 +14,7 @@
 | fields _time action info user search_id search total_run_time event_count result_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
 | eval search_id=trim(search_id, "'")
 | rex field=search_id "(?<search_family>scheduler|subsearch)_"
-| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "(?<dash_searchc_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
+| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "^SummaryDirector"), "summary", match(search_id, "(?<dash_searchc_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
 | stats max(eval(if(info="completed", total_run_time, 0))) AS done min(_time) AS _time list(_time) AS times list(action) AS actions list(info) as infos max(*) AS * by search_id
 | eval search_id_and_times=search_id . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "granted"))) - 1) . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "completed"))) + 1)
 | search done>0 search!=""
@@ -38,6 +39,9 @@
   </search>
   <search base="timed_audit" id="adhoc_family">
     <query>search search_family="adhoc"</query>
+  </search>
+  <search base="timed_audit" id="summary_family">
+    <query> search search_family="summary"</query>
   </search>
   <search base="timed_audit" id="subsearch_family">
     <query>search search_family="subsearch"</query>
@@ -116,8 +120,7 @@ as adhoc searches and dashboards.
 	    <set token="show_search_scheduled">$row.search$</set>
 	  </condition>
 	  <condition field="Short SID">
-<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
-	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+	    <link target="_blank"><![CDATA[sto_vji?form.srv=$form.sh$&form.sid=$row.search_id$]]></link>
           </condition>
 	</drilldown>
       </table>
@@ -208,6 +211,40 @@ they write a bad search, their impact on the system is reduced.
     <html>
       <h3>Search String</h3>
       <div class="custom-result-value">$show_search_adhoc$</div>
+    </html>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+Summary searches
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+	<title>Summary Searches</title>
+	<fields>["Short SID", "user", "total_run_time", "flags", "_time", "search_et", "search_lt", "span_pretty", "searched_buckets", "eliminated_buckets", "total_slices", "decompressed_slices", "scan_count", "event_count", "Show Search"]</fields>
+	<search base="summary_family">
+<!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
+	</search>
+        <drilldown>
+	  <condition field="Show Search">
+	    <set token="show_search_summary">$row.search$</set>
+	  </condition>
+	  <condition field="Short SID">
+<!--	  <link>search_job_detail_6?form.sid=$row.sid$</link> -->
+	    <link target="_blank"><![CDATA[search_audit_dash_drilldown?form.sid_time_tuple=$row.search_id_and_times$&form.sh=$sh$]]></link>
+          </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$show_search_summary$">
+    <html>
+      <h3>Search String</h3>
+      <div class="custom-result-value">$show_search_summary$</div>
     </html>
   </row>
 

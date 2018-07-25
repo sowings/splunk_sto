@@ -9,7 +9,7 @@
       <fieldForLabel>label</fieldForLabel>
       <default>All Hosts</default>
       <search>
-	<query>| inputlookup sto_asset_map_savedsearch.csv | stats count by splunk_server | eval label=splunk_server . " (" . count . ")"</query>
+	<query>| inputlookup sto_asset_map_savedsearch | stats count by splunk_server | eval label=splunk_server . " (" . count . ")"</query>
       </search>
     </input>
     <input type="dropdown" token="app" searchWhenChanged="true">
@@ -19,7 +19,7 @@
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
-        <query>| inputlookup sto_asset_map_savedsearch.csv | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+        <query>| inputlookup sto_asset_map_savedsearch | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
       </search>
     </input>
 

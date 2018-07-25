@@ -1,0 +1,78 @@
+<form>
+  <label>Scheduled Search Detail</label>
+
+  <fieldset>
+    <input type="dropdown" token="app" searchWhenChanged="true">
+      <label>Application</label>
+      <choice value="*">All Applications</choice>
+      <fieldForValue>eai:acl.app</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <default>*</default>
+      <search>
+        <query>| inputlookup sto_asset_map_savedsearch | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+      </search>
+    </input>
+
+    <input type="dropdown" token="st" searchWhenChanged="true">
+      <label>Search Title</label>
+      <fieldForValue>object_title</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <search>
+	<query>| inputlookup sto_asset_map_savedsearch where eai:acl.app="$app$"</query>
+      </search>
+    </input>
+
+    <input type="time" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>Last 24 hours</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Search Details</title>
+	<search>
+	  <query>| inputlookup sto_asset_map_savedsearch | search eai:acl.app="$app$" object_title="$st$"</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Recent Runs</title>
+	<search>
+	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler savedsearch_name="$st$"
+| table _time host user, app, priority, status, scheduled_time, window_time	  
+	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <input type="dropdown" token="window">
+        <!-- <choice value="+1h@h">+1 Hour (+1h@h)</choice> -->
+        <default>+2d@d</default>
+        <choice value="+2d@d">+1 Day (+2d@d)</choice>
+        <choice value="+8d@d">+7 Days (+8d@d)</choice>
+        <label>Future Time Window:</label>
+      </input>
+      <table>
+        <title>Future Runs (+1 day)</title>
+	<search>
+	  <query>| rest /servicesNS/-/$app$/admin/savedsearch/ splunk_server=local
+  [ | makeresults | eval earliest_time=relative_time(now(), "-0s@s") | return earliest_time ]
+  [ | makeresults | eval latest_time=relative_time(now(), "$window$") | return latest_time ]
+| search title="$st$"
+| mvexpand scheduled_times 
+| rename scheduled_times as _time eai:acl.app as app eai:acl.owner as user title as search   
+</query> 
+	</search>
+      </table>
+    </panel>
+  </row>
+</form>

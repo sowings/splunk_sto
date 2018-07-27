@@ -1,0 +1,62 @@
+<form>
+  <label>Dashboard Search Overview</label>
+
+  <fieldset>
+    <input type="dropdown" token="srv" searchWhenChanged="true">
+      <label>Splunk Host</label>
+      <choice value="*">All Hosts</choice>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <default>All Hosts</default>
+      <search>
+	<query>| inputlookup sto_asset_map_dashboards | stats count by splunk_server | eval label=splunk_server . " (" . count . ")"</query>
+      </search>
+    </input>
+    <input type="dropdown" token="app" searchWhenChanged="true">
+      <label>Application</label>
+      <choice value="*">All Applications</choice>
+      <fieldForValue>eai:appName</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <default>*</default>
+      <search>
+        <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" | stats count by eai:appName | eval label='eai:appName' . " (" . count . ")"</query>
+      </search>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>This is for the list of dashboards</title>
+	<search>
+	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:appName="$app$"
+| stats count by eai:acl.app, eai:acl.sharing, eai:acl.owner, label, title
+| eval header=label . " (" . count . ")"
+| table header, title, eai:acl.app eai:acl.owner, eai:acl.sharing, count
+| rename header AS "Dash Title (Searches)", title AS "Filename", eai:acl.owner AS "Owner", eai:acl.app AS "App Name", eai:acl.sharing AS "Permissions", count AS "Searches"</query>
+	</search>
+	<drilldown>
+	  <set token="sdo_dash_clicked">yes</set>
+	  <set token="sdo_dash_title">$row.Filename$</set>
+	  <set token="sdo_dash_owner">$row.Owner$</set>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row depends="$sdo_dash_clicked$">
+    <panel>
+      <table>
+	<title>Dashboard Search Details</title>
+	<search>
+	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:appName="$app$" AND title="$sdo_dash_title$"
+| rename comment AS "This is to deal with clones"
+| search eai:acl.owner="$sdo_dash_owner$"
+| table label title search_num input_flag base_name main_search
+| rename label AS "Dash Title", title AS "Filename", search_num AS "Search Number", input_flag AS "Search Type (body / input)", base_name AS "Search Name", main_search AS "Search String"
+	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+</form>

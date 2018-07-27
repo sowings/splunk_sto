@@ -54,10 +54,67 @@
     <panel>
       <table>
 	<title>Recent Runs</title>
-	<search>
+	<fields>["_time","host","user","app","priority","status","scheduled_time","window_time"]</fields>
+	<search id="ssd_scheduler_recent">
 	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler host="$srv$*" savedsearch_name="$st$"
-| table _time host user, app, priority, status, scheduled_time, window_time	  
-	  </query>
+| fields _time host user, app, priority, status, scheduled_time, window_time, member_label, sid</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <!-- I don't really know where to place this in the Simple XML since
+       it's a "post process" that doesn't actually have a display, but 
+       maybe I'll make one up. -->
+  <search base="ssd_scheduler_recent" id="ssd_scheduler_delegated">
+    <query>| search status="delegated_remote"
+| fields member_label, _time, sid | eval epoch=round(_time)</query>
+    <done>
+      <eval token="ssd_scheduler_delegated">if(isnotnull($result.member_label$), "yes", null())</eval>
+      <set token="ssd_scheduler_delegated_host">$result.member_label$</set>
+      <set token="ssd_scheduler_delegated_time">$result.epoch$</set>
+      <set token="ssd_scheduler_delegated_sid">$result.sid$</set>
+      <eval token="ssd_remote_sid">if(isnotnull($result.member_label$), "remote_" . $result.member_label$ . "_" . $result.sid$, null())</eval>
+    </done>
+  </search>
+
+  <row depends="$ssd_scheduler_delegated$">
+    <panel>
+      <single>
+	<title>Search Delegated to Host...</title>
+	<option name="field">member_label</option>
+	<search base="ssd_scheduler_delegated"/>
+      </single>
+    </panel>
+    <panel>
+      <single>
+	<title>Search SID at Delegated SH</title>
+	<option name="field">sid</option>
+	<search base="ssd_scheduler_delegated"/>
+      </single>
+    </panel>
+  </row>
+
+  <row depends="$ssd_scheduler_delegated$">
+    <panel>
+      <table>
+	<title>Scheduler Logs from Delegated Host</title>
+	<search>
+	  <query>index=_internal sourcetype=scheduler source=*scheduler.log*
+host="$ssd_scheduler_delegated_host$*" earliest="$ssd_scheduler_delegated_time$"
+	  sid="$ssd_scheduler_delegated_sid$"</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+  
+  <row depends="$ssd_remote_sid$">
+    <panel>
+      <table>
+	<title>Remote Search Logs</title>
+	<search>
+	  <query>index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log*
+	  TERM(search_id=$ssd_remote_sid$)</query>
 	</search>
       </table>
     </panel>

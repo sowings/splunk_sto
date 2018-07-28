@@ -296,6 +296,21 @@ data.search_props.sid::$sid$
     </panel>
   </row>
 
+  <row depends="$rest_info_available$">
+    <panel>
+      <single>
+	<title>Click for search.log</title>
+	<option name="link.visible">false</option>
+	<option name="field">label</option>
+	<search>
+	  <query>| makeresults | eval label="Click here for search.log"</query>
+	</search>
+	<drilldown>
+	  <link target="_blank">/api/search/jobs/$sid$/search.log?outputMode=raw</link>
+	</drilldown>
+      </single>
+    </panel>
+  </row>
   <row>
     <panel>
       <input type="dropdown" token="intro_choice" searchWhenChanged="true">

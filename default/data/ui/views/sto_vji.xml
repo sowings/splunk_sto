@@ -53,7 +53,7 @@ TERM($sid$) search_id='$sid$'
     <query>| rest /services/search/jobs/$sid$ splunk_server="$srv$"</query>
     <done>
       <set token="rest_info_sid">$job.sid$</set>
-      <eval token="rest_info_available">if($result.count$ == "0", null(), "true")</eval>
+      <eval token="rest_info_available">if($job.resultCount$ == "0", null(), "true")</eval>
     </done>
   </search>
 

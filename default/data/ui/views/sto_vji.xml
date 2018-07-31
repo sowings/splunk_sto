@@ -58,6 +58,7 @@ TERM($sid$) search_id='$sid$'
 | stats earliest(user) AS user
     earliest(savedsearch_name) AS savedsearch_name
     earliest(search) AS search_string
+    latest(eval(if(info="completed", _time, null()))) AS completed_time
     latest(total_run_time) AS total_run_time
     latest(scan_count) AS scan_count
     latest(event_count) AS event_count
@@ -67,6 +68,7 @@ TERM($sid$) search_id='$sid$'
     latest(considered_events) AS considered_events
     latest(total_slices) AS total_slices
     latest(decompressed_slices) AS decompressed_slices
+| eval completed_time = completed_time + 1
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",
     scan_count AS "Scanned Events", event_count AS "Matching Events",
@@ -79,6 +81,7 @@ TERM($sid$) search_id='$sid$'
     </query>
     <done>
       <set token="audit_info_available">$job.sid$</set>
+      <eval token="audit_latest_time">if(isnotnull($result.completed_time$), $result.completed_time$, now())</eval>
     </done>
   </search>
 
@@ -91,7 +94,7 @@ TERM($sid$) search_id='$sid$'
   </search>
 
   <search id="sid_via_introspection">
-    <query>`get_introspection_index` earliest=$search_start_epoch$ sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
+    <query>`get_introspection_index` earliest=$search_start_epoch$ latest=$audit_latest_time$ sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
 data.search_props.sid::$sid$
 | sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used)
 </query>

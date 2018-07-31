@@ -334,19 +334,43 @@ data.search_props.sid::$sid$
 
   <row depends="$rest_info_available$">
     <panel>
+      <title>Click here for logs</title>
       <single>
-	<title>Click for search.log</title>
 	<option name="link.visible">false</option>
 	<option name="field">label</option>
 	<search>
-	  <query>| makeresults | eval label="Click here for search.log"</query>
+	  <query>| makeresults | eval label="Click here for SH's search.log"</query>
 	</search>
 	<drilldown>
 	  <link target="_blank">/api/search/jobs/$sid$/search.log?outputMode=raw</link>
 	</drilldown>
       </single>
     </panel>
+    <panel>
+      <single>
+	<option name="link.visible">false</option>
+	<option name="field">label</option>
+	<search>
+	  <query>| makeresults | eval label="Click here to search for remote_search logs"</query>
+	</search>
+	<drilldown>
+	  <set token="request_remote_logs">true</set>
+	</drilldown>
+      </single>
+    </panel>
   </row>
+
+  <row depends="$request_remote_logs$">
+    <panel>
+      <event>
+	<title>Remote Search Logs</title>
+	<search>
+	  <query>index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ remote_$srv$_$sid$</query>
+	</search>
+      </event>
+    </panel>
+  </row>
+  
   <row>
     <panel>
       <input type="dropdown" token="intro_choice" searchWhenChanged="true">

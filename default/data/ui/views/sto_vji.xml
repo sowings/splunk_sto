@@ -107,7 +107,9 @@ data.search_props.sid::$sid$
     <panel>
       <table>
 	<title>Salient audit log details</title>
-	<search base="sid_via_audit"/>
+	<search base="sid_via_audit">
+	  <query>fields - completed_time</query>
+	</search>
       </table>
     </panel>
   </row>

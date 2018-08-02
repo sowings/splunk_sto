@@ -324,18 +324,6 @@ data.search_props.sid::$sid$
 
   <row depends="$rest_info_available$">
     <panel>
-    <table>
-      <title>Job Details</title>
-      <option name="drilldown">none</option>
-      <search base="sid_via_rest">
-	<query>transpose</query>
-      </search>
-    </table>
-    </panel>
-  </row>
-
-  <row depends="$rest_info_available$">
-    <panel>
       <title>Click here for logs</title>
       <single>
 	<option name="link.visible">false</option>

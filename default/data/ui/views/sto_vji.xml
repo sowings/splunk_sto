@@ -12,7 +12,10 @@
       </search>
     </input>
     
-    <input type="text" token="sid"/>
+    <input type="text" token="sid">
+      <label>Search ID</label>
+    </input>
+    
   </fieldset>
 
   <!-- Here's a sample audit log event pair (start / completed)

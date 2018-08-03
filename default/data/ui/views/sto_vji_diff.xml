@@ -176,6 +176,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
     </chart>
   </row>
 
+<!--
   <row>
     <panel>
       <table>
@@ -187,6 +188,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
       </table>
     </panel>
   </row>
+-->
 
 
   <row>

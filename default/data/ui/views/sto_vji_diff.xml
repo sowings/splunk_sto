@@ -162,16 +162,13 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
       <option name="charting.legend.placement">none</option>
       <search base="sid_via_rest">
 	<query><![CDATA[search dispatchState=DONE
-| fields search_comparison, performance.dispatch.stream.remote.*  | transpose
-| rex field=column "performance\.dispatch\.stream\.remote\.(?<hostname>.+?)\.(?<metric>[^\.]+)$"
-| eval sid=if(column="sid", 'row 1', null())
-| filldown sid
-| eval {metric}='row 1'
-| stats max(duration_secs) AS duration_secs
-   max(output_count) AS output_count
-   by sid, hostname
-| eval bytes_per_sec=round(output_count / duration_secs, 2)
-| chart max(bytes_per_sec) over hostname by sid]]></query>
+| fields search_comparison, performance.dispatch.stream.remote.*
+| fields - performance.dispatch.stream.remote.duration_secs performance.dispatch.stream.remote.output_count *.invocations *.input_count
+| foreach performance.dispatch.stream.remote.*.duration_secs [ eval <<MATCHSTR>>_ratio='performance.dispatch.stream.remote.<<MATCHSTR>>.output_count' / '<<FIELD>>' ]
+| fields search_comparison *_ratio
+| rename *_ratio AS *
+| untable search_comparison host ratio
+| chart max(ratio) AS bytes_sec OVER host BY search_comparison]]></query>
       </search>
     </chart>
   </row>

@@ -70,40 +70,47 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
   
   <row>
     <panel>
-      <single>
+      <table>
         <title>Search String</title>
         <option name="field">search</option>
         <option name="link.visible">false</option>
         <search base="sid_via_rest">
-          <query>eval search=coalesce('request.search', eventSearch)</query>
+          <query>eval search=coalesce('request.search', eventSearch)
+| table search_comparison, sid, search</query>
         </search>
-      </single>
+      </table>
     </panel>
   </row>
 
   <row>
-    <single>
+    <panel>
+    <table>
       <title>Event Search (if any)</title>
       <option name="field">eventSearch</option>
       <option name="link.visible">false</option>
       <search base="sid_via_rest"/>
-    </single>
+    </table>
+    </panel>
   </row>
   <row>
-    <single>
+    <panel>
+    <table>
       <title>Remote Search (if any)</title>
       <option name="field">remoteSearch</option>
       <option name="link.visible">false</option>
       <search base="sid_via_rest"/>
-    </single>
+    </table>
+    </panel>
   </row>
   <row>
-    <single>
+    <panel>
+    <table>
       <title>Reporting Search (if any)</title>
       <option name="field">reportSearch</option>
       <option name="link.visible">false</option>
       <search base="sid_via_rest"/>
-    </single>
+    </table>
+    </panel>      
   </row>
 
   <row>

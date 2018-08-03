@@ -2,8 +2,12 @@
   <label>Search Job Comparator</label>
 
   <fieldset>
-    <input type="text" label="First Search" token="sid"/>
-    <input type="text" label="Second Search" token="second_sid"/>
+    <input type="text" token="sid">
+      <label>First Search</label>
+    </input>
+    <input type="text" token="second_sid">
+      <label>Second Search</label>
+    </input>
   </fieldset>
 
   <search id="sid_via_rest">
@@ -42,6 +46,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
     <panel>
       <table>
 	<title>Salient audit log details</title>
+	<fields>["Search Order","search_id","User","Search Name","Search String","Run Time (sec)","Scan Count","Event Count","Startup Time","Searched Buckets","Skipped Buckets (bloomfilters)","Considered Events","Bucket Slices","Decompressed Slices"]</fields>
 	<search base="sid_via_audit"/>
       </table>
     </panel>

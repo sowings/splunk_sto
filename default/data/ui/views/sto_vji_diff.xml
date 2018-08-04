@@ -53,7 +53,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       first_stop=round(first_stop) + 1,
       second_start=round(second_start),
       second_stop=round(second_stop) + 1,
-      start_diff=round(first_start) - round(second_start)
+      start_diff=round(second_start) - round(first_start)
 | rename s_order AS "Search Order"
     </query>
     <done>
@@ -184,7 +184,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
     </chart>
     <chart>
       <title>Time spent in commands</title>
-      <option name="link.visible">true</option>
+      <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
       <option name="charting.chart.stackMode">stacked</option>
       <search base="sid_via_rest">
@@ -244,6 +244,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
     <panel>
       <chart>
 	<title>Indexing Workload at Search Start</title>
+        <option name="link.visible">false</option>
 	<search>
 	  <query>index=_internal source=*remote_searches.log* sourcetype=splunkd_remote_searches
 earliest=$audit_goalpost_et$ latest=$audit_goalpost_lt$
@@ -269,10 +270,14 @@ search_id=remote*$sid$ OR search_id=remote*$second_sid$
 	<default>max(data.mem_used)</default>
       </input>
       <chart>
+	<title>Performance Metrics > Second Search Overlaid on First, Times Not Exact &lt;</title>
+	<option name="link.visible">false</option>
 	<option name="charting.chart">line</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
-	  <query>| timechart $intro_choice$ by data.search_props.sid</query>
+	  <query>| eval start_diff=$start_diff$
+| eval _time=if(match('data.search_props.sid', "$sid$$$"), _time, _time - start_diff)
+| timechart $intro_choice$ by data.search_props.sid</query>
 	</search>
       </chart>
     </panel>

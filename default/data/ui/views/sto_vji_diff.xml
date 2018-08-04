@@ -23,13 +23,64 @@
 (TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
 TERM($sid$) OR TERM($second_sid$)
 search_id='$sid$' OR search_id='$second_sid$'
-| stats earliest(user) AS User earliest(savedsearch_name) AS "Search Name" earliest(search) AS "Search String" latest(total_run_time) AS "Run Time (sec)" latest(scan_count) AS "Scan Count" latest(event_count) AS "Event Count" latest(search_startup_time) AS "Startup Time" latest(searched_buckets) AS "Searched Buckets" latest(eliminated_buckets) AS "Skipped Buckets (bloomfilters)" latest(considered_events) AS "Considered Events" latest(total_slices) AS "Bucket Slices" latest(decompressed_slices) AS "Decompressed Slices" by search_id
+| stats
+    earliest(user) AS User
+    earliest(savedsearch_name) AS "Search Name"
+    earliest(search) AS "Search String"
+    latest(eval(if(info="completed", _time, null()))) AS completed_time
+    latest(total_run_time) AS "Run Time (sec)"
+    latest(scan_count) AS "Scan Count"
+    latest(event_count) AS "Event Count"
+    latest(search_startup_time) AS "Startup Time"
+    latest(searched_buckets) AS "Searched Buckets"
+    latest(eliminated_buckets) AS "Skipped Buckets (bloomfilters)"
+    latest(considered_events) AS "Considered Events"
+    latest(total_slices) AS "Bucket Slices"
+    latest(decompressed_slices) AS "Decompressed Slices"
+    earliest(_time) AS start
+    latest(_time) AS stop 
+    by search_id
+| eval s_order=if(search_id="'$sid$'", "First", "Second")
+| eventstats min(eval(if(s_order="First", start, null()))) AS first_start, 
+      max(eval(if(s_order="First", stop, null()))) AS first_stop,
+      min(eval(if(s_order="Second", start, null()))) AS second_start, 
+      max(eval(if(s_order="Second", stop, null()))) AS second_stop,
+      min(start) AS audit_goalpost_et,
+      max(stop) AS audit_goalpost_lt
+| eval audit_goalpost_et = round(audit_goalpost_et),
+      audit_goalpost_lt = round(audit_goalpost_lt) + 1,
+      first_start=round(first_start),
+      first_stop=round(first_stop) + 1,
+      second_start=round(second_start),
+      second_stop=round(second_stop) + 1,
+      start_diff=round(first_start) - round(second_start)
+| rename s_order AS "Search Order"
     </query>
     <done>
-      <set token="audit_one_et"/>
-      <set token="audit_one_lt"/>
-      <set token="audit_two_et"/>
-      <set token="audit_two_lt"/>
+      <set token="audit_one_et">$result.first_start$</set>
+      <set token="audit_one_lt">$result.first_stop$</set>
+      <set token="audit_two_et">$result.second_start$</set>
+      <set token="audit_two_lt">$result.second_stop$</set>
+      <set token="start_diff">$result.start_diff$</set>
+<!-- Couldn't get these to work. Doing it in search instead (see above)
+      <condition match="'result.first_start' &gt; 'result.second_start'">
+	<set token="audit_goalpost_et">$result.second_start$</set>
+      </condition>
+      <condition match="'result.second_start' &gt; 'result.first_start'">
+	<set token="audit_goalpost_et">$result.first_start$</set>
+      </condition>
+      <condition match="'result.first_stop' &gt; 'result.second_stop'">
+	<set token="audit_goalpost_et">$result.second_stop$</set>
+      </condition>
+      <condition match="'result.second_stop' &gt; 'result.first_stop'">
+	<set token="audit_goalpost_et">$result.first_stop$</set>
+      </condition>
+      <eval token="audit_goalpost_et">if($result.first_start$ > $result.second_start$, '$result.second_start$', '$result.first_start$')</eval>
+      <eval token="audit_goalpost_lt">if($result.first_stop$ > $result.second_stop$, '$result.second_stop$', '$result.first_stop$')</eval>
+-->
+    <set token="audit_goalpost_et">$result.audit_goalpost_et$</set>
+    <set token="audit_goalpost_lt">$result.audit_goalpost_lt$</set>
+			
     </done>
   </search>
 
@@ -187,6 +238,22 @@ data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$
   </row>
 -->
 
+  <row>
+    <panel>
+      <chart>
+	<title>Indexing Workload at Search Start</title>
+	<search>
+	  <query>index=_internal source=*remote_searches.log* sourcetype=splunkd_remote_searches
+earliest=$audit_goalpost_et$ latest=$audit_goalpost_lt$
+starting remote ($sid$ OR $second_sid$)
+search_id=remote*$sid$ OR search_id=remote*$second_sid$
+| eval marker=if(match(search_id, "^remote_.*_$second_sid$$$"), "First", "Second")
+| chart max(active_searches) OVER host BY marker
+	  </query>
+	</search>
+      </chart>
+    </panel>
+  </row>
 
   <row>
     <panel>

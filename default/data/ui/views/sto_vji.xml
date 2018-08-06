@@ -110,6 +110,7 @@ data.search_props.sid::$sid$
     <panel>
       <table>
 	<title>Salient audit log details</title>
+	<option name="link.visible">false</option>
 	<search base="sid_via_audit">
 	  <query>fields - completed_time</query>
 	</search>
@@ -119,16 +120,20 @@ data.search_props.sid::$sid$
   
   
   <row rejects="$rest_info_available$">
+    <panel>
     <single>
       <title>REST Job Info Unavailable</title>
+      <option name="link.visible">false</option>
       <option name="field">label</option>
       <search>
 	<query>| makeresults | eval label="REST Info Unavailable; Job Cancelled or Expired"</query>
       </search>
     </single>
+    </panel>
   </row>
 
   <row depends="$rest_info_available$">
+    <panel>
     <single>
       <title>Total Jobs Found</title>
       <option name="link.visible">false</option>
@@ -136,6 +141,8 @@ data.search_props.sid::$sid$
 	<query>stats count</query>
       </search>
     </single>
+    </panel>
+    <panel>
     <single>
       <title>Adhoc Jobs Found</title>
       <option name="link.visible">false</option>
@@ -143,6 +150,8 @@ data.search_props.sid::$sid$
 	<query>stats count(eval(if(isSavedSearch=0, title, null()))) AS count</query>
       </search>
     </single>
+    </panel>
+    <panel>
     <single>
       <title>Scheduled Jobs Found</title>
       <option name="link.visible">false</option>
@@ -150,6 +159,7 @@ data.search_props.sid::$sid$
 	<query>stats count(eval(if(isSavedSearch=1,isSavedSearch,null()))) AS count</query>
       </search>
     </single>
+    </panel>
   </row>
 
   <row depends="$rest_info_available$">
@@ -221,6 +231,7 @@ data.search_props.sid::$sid$
     <panel>
     <single>
       <title>Search String</title>
+      <option name="link.visible">false</option>
       <option name="field">search</option>
       <search base="sid_via_rest">
 	<query>eval search=coalesce('request.search', eventSearch)</query>
@@ -232,6 +243,7 @@ data.search_props.sid::$sid$
     <panel>
     <single>
       <title>Event Search (if any)</title>
+      <option name="link.visible">false</option>
       <option name="field">eventSearch</option>
       <search base="sid_via_rest"/>
     </single>
@@ -241,6 +253,7 @@ data.search_props.sid::$sid$
     <panel>
     <single>
       <title>Remote Search (if any)</title>
+      <option name="link.visible">false</option>
       <option name="field">remoteSearch</option>
       <search base="sid_via_rest"/>
     </single>
@@ -250,6 +263,7 @@ data.search_props.sid::$sid$
     <panel>
     <single>
       <title>Reporting Search (if any)</title>
+      <option name="link.visible">false</option>
       <option name="field">reportSearch</option>
       <search base="sid_via_rest"/>
     </single>
@@ -357,6 +371,7 @@ data.search_props.sid::$sid$
     <panel>
       <event>
 	<title>Remote Search Logs</title>
+	<option name="link.visible">false</option>
 	<search>
 	  <query>index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ remote_$srv$_$sid$</query>
 	</search>
@@ -376,6 +391,7 @@ data.search_props.sid::$sid$
 	<default>max(data.mem_used)</default>
       </input>
       <chart>
+        <option name="link.visible">false</option>
 	<option name="charting.chart">line</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">

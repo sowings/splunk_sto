@@ -199,44 +199,46 @@ data.search_props.sid::$sid$
 
   <row depends="$rest_info_available$">
     <panel>
-    <single>
+      <table>
       <title>Search String</title>
       <option name="link.visible">false</option>
-      <option name="field">search</option>
       <search base="sid_via_rest">
-	<query>eval search=coalesce('request.search', eventSearch)</query>
+	<query>eval search=coalesce('request.search', eventSearch) | table sid, search | rename sid AS "Search ID", search AS "Search String"</query>
       </search>
-    </single>
+      </table>
     </panel>
   </row>
   <row depends="$rest_info_available$">
     <panel>
-    <single>
+      <table>
       <title>Event Search (if any)</title>
       <option name="link.visible">false</option>
-      <option name="field">eventSearch</option>
-      <search base="sid_via_rest"/>
-    </single>
+      <search base="sid_via_rest">
+	<query>| table sid, eventSearch | rename sid AS "Search ID", eventSearch AS "Search to Locate Events"</query>
+      </search>
+      </table>
     </panel>
   </row>
   <row depends="$rest_info_available$">
     <panel>
-    <single>
+      <table>
       <title>Remote Search (if any)</title>
       <option name="link.visible">false</option>
-      <option name="field">remoteSearch</option>
-      <search base="sid_via_rest"/>
-    </single>
+      <search base="sid_via_rest">
+	<query>| table sid, remoteSearch | rename sid AS "Search ID", remoteSearch AS "Remote Search - \"Map\" Run on Indexers"</query>
+      </search>
+      </table>
     </panel>
   </row>
   <row depends="$rest_info_available$">
     <panel>
-    <single>
+      <table>
       <title>Reporting Search (if any)</title>
       <option name="link.visible">false</option>
-      <option name="field">reportSearch</option>
-      <search base="sid_via_rest"/>
-    </single>
+      <search base="sid_via_rest">
+	<query>| table sid, reportSearch | rename sid AS "Search ID", reportSearch AS "Reporting Search - \"Reduce\" Run on SH"</query>
+      </search>
+      </table>
     </panel>
   </row>
 
@@ -314,8 +316,8 @@ data.search_props.sid::$sid$
 
   <row depends="$rest_info_available$">
     <panel>
-      <title>Click here for logs</title>
       <single>
+        <title>Click here for the main search log</title>
 	<option name="link.visible">false</option>
 	<option name="field">label</option>
 	<search>
@@ -328,6 +330,7 @@ data.search_props.sid::$sid$
     </panel>
     <panel>
       <single>
+        <title>Click here for remote logs</title>
 	<option name="link.visible">false</option>
 	<option name="field">label</option>
 	<search>

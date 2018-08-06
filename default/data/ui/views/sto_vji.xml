@@ -135,36 +135,6 @@ data.search_props.sid::$sid$
   <row depends="$rest_info_available$">
     <panel>
     <single>
-      <title>Total Jobs Found</title>
-      <option name="link.visible">false</option>
-      <search base="sid_via_rest">
-	<query>stats count</query>
-      </search>
-    </single>
-    </panel>
-    <panel>
-    <single>
-      <title>Adhoc Jobs Found</title>
-      <option name="link.visible">false</option>
-      <search base="sid_via_rest">
-	<query>stats count(eval(if(isSavedSearch=0, title, null()))) AS count</query>
-      </search>
-    </single>
-    </panel>
-    <panel>
-    <single>
-      <title>Scheduled Jobs Found</title>
-      <option name="link.visible">false</option>
-      <search base="sid_via_rest">
-	<query>stats count(eval(if(isSavedSearch=1,isSavedSearch,null()))) AS count</query>
-      </search>
-    </single>
-    </panel>
-  </row>
-
-  <row depends="$rest_info_available$">
-    <panel>
-    <single>
       <title>Time Spent</title>
       <option name="link.visible">false</option>
       <option name="field">startup_time</option>

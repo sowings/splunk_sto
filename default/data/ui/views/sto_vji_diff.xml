@@ -187,6 +187,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       <title>Performance Histogram</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Search</option>
       <option name="charting.chart.stackMode">stacked</option>
       <search base="sid_via_rest">
 	<query>search dispatchState=DONE
@@ -202,6 +203,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       <title>Time spent in commands</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Search</option>
       <option name="charting.chart.stackMode">stacked</option>
       <search base="sid_via_rest">
 	<query>stats max(performance.command.*.duration_secs) AS *, max(performance.command.search.*.duration_secs) AS * by search_comparison</query>
@@ -214,6 +216,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       <title>Bytes Returned From Indexers</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Search</option>
       <option name="charting.chart.stackMode">stacked</option>
       <search base="sid_via_rest">
 	<query>search dispatchState=DONE
@@ -226,7 +229,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       <title>Ratio of Bytes Returned vs. Time</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
-      <option name="charting.axisTitleX.text">Hostname</option>
+      <option name="charting.axisTitleX.text">Search Peer</option>
       <option name="charting.axisTitleY.text">Bytes / Sec</option>
       <option name="charting.legend.placement">none</option>
       <search base="sid_via_rest">
@@ -261,6 +264,7 @@ search_id='$sid$' OR search_id='$second_sid$'
       <chart>
 	<title>Indexing Workload at Search Start</title>
         <option name="link.visible">false</option>
+        <option name="charting.axisTitleX.text">Search Peer</option>
 	<search>
 	  <query>index=_internal source=*remote_searches.log* sourcetype=splunkd_remote_searches
 earliest=$audit_goalpost_et$ latest=$audit_goalpost_lt$
@@ -289,11 +293,13 @@ search_id=remote*$sid$ OR search_id=remote*$second_sid$
 	<title>Performance Metrics > Second Search Overlaid on First, Times Not Exact &lt;</title>
 	<option name="link.visible">false</option>
 	<option name="charting.chart">line</option>
+	<option name="charting.axisTitleX.text">Time</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
 	  <query>| eval start_diff=$start_diff$
+| eval comparator=if(match('data.search_props.sid', "$sid$$$"), "First", "Second")
 | eval _time=if(match('data.search_props.sid', "$sid$$$"), _time, _time - start_diff)
-| timechart $intro_choice$ by data.search_props.sid</query>
+| timechart $intro_choice$ by comparator</query>
 	</search>
       </chart>
     </panel>
@@ -303,8 +309,9 @@ search_id=remote*$sid$ OR search_id=remote*$second_sid$
     <panel>
       <chart>
 	<title>Performance Metrics for Indexers > Second Search Overlaid on First, Times Not Exact &lt;</title>
-	<option name="link.visible">true</option>
+	<option name="link.visible">false</option>
 	<option name="charting.chart">line</option>
+	<option name="charting.axisTitleX.text">Time</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search id="sid_via_introspection_idx">
           <query>`get_introspection_index` sourcetype=splunk_resource_usage data.search_props.role::peer component::PerProcess

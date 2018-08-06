@@ -243,9 +243,10 @@ data.search_props.sid::$sid$
   <row depends="$rest_info_available$">
     <panel>
     <chart>
-      <title>Performance Histogram</title>
+      <title>Performance Histogram - Accesses to TSIDX Files</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Search ID</option>
       <option name="charting.chart.stackMode">stacked100</option>
       <search base="sid_via_rest">
 	<query>search dispatchState=DONE
@@ -276,6 +277,8 @@ data.search_props.sid::$sid$
       <title>Bytes Returned From Indexers</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
+      <option name="charting.axisTitleX.text">Search ID</option>
+      <option name="charting.axisTitleY.text">Bytes</option>
       <search base="sid_via_rest">
 	<query>search dispatchState=DONE
       | stats max(performance.dispatch.stream.remote.*.output_count) AS * by sid
@@ -289,7 +292,7 @@ data.search_props.sid::$sid$
       <title>Ratio of Bytes Returned vs. Time</title>
       <option name="link.visible">false</option>
       <option name="charting.chart">column</option>
-      <option name="charting.axisTitleX.text">Hostname</option>
+      <option name="charting.axisTitleX.text">Search Peer</option>
       <option name="charting.axisTitleY.text">Bytes / Sec</option>
       <option name="charting.legend.placement">none</option>
       <search base="sid_via_rest">
@@ -363,6 +366,7 @@ data.search_props.sid::$sid$
       <chart>
         <option name="link.visible">false</option>
 	<option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
 	  <query>| timechart $intro_choice$</query>

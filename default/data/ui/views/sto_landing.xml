@@ -2,7 +2,22 @@
   <!-- -*-mode: nXML; auto-fill-mode: -1; fill-column: 99999 -*- -->
   <row>
     <panel>
-      <html><h2>Welcome to the Splunk Search Tracking and Optimization App</h2></html>
+      <html>
+<h2>Welcome to the Splunk Search Tracking and Optimization App</h2>
+
+This app is broken out into several areas to guide Splunk
+administrators through troubleshooting workflows as well as providing
+tips and tricks for optimizing searches. Follow the links below, or
+use the navigation menu above to find areas of interest.
+<p/>
+<a href="sto_scheduled_overview">Scheduled Searches</a><p/>
+<a href="sto_dma_overview">Data Model Acceleration Overview</a><p/>
+<a href="sto_ra_overview">Report Acceleration Overview</a><p/>
+<a href="sto_dash_overview">Dashboard Overview</a><p/>
+<a href="sto_taxonomy">Search Type and Performance Overview</a><p/>
+
+
+</html>
     </panel>
   </row>
 </dashboard>

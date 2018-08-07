@@ -98,8 +98,8 @@ TERM($sid$) search_id='$sid$'
 
   <search id="sid_via_introspection">
     <query>`get_introspection_index` earliest=$search_start_epoch$ latest=$audit_latest_time$ sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
-data.search_props.sid::$sid$
-| sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used)
+data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
+| sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used) by host
 </query>
     <done>
       <set token="introspection_available">$job.sid$</set>
@@ -314,8 +314,8 @@ data.search_props.sid::$sid$
     </panel>
   </row>
 
-  <row depends="$rest_info_available$">
-    <panel>
+  <row>
+    <panel depends="$rest_info_available$">
       <single>
         <title>Click here for the main search log</title>
 	<option name="link.visible">false</option>
@@ -343,15 +343,32 @@ data.search_props.sid::$sid$
     </panel>
   </row>
 
+	<search id="sv_remote_search_logs">
+	  <query><![CDATA[index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ remote_$srv$_$sid$
+| rex "StreamedSearch - Streamed search connection (?<state>\w+)\s"
+| fields _time host active_searches search_id server state elapsedTime search
+]]></query>
+	</search>
+
   <row depends="$request_remote_logs$">
     <panel>
-      <event>
+      <table>
 	<title>Remote Search Logs</title>
 	<option name="link.visible">false</option>
-	<search>
-	  <query>index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ remote_$srv$_$sid$</query>
+	<search base="sv_remote_search_logs">
+	  <query>table _time server search_id active_searches elapsedTime</query>
 	</search>
-      </event>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+	<title>Active Searches At Start (and Completion if Available)</title>
+	<option name="charting.chart">line</option>
+	<option name="charting.chart.nullValueMode">connect</option>
+	<search base="sv_remote_search_logs">
+	  <query>timechart max(active_searches) by host limit=100 useother=f usenull=f</query>
+	</search>
+      </chart>
     </panel>
   </row>
   
@@ -372,10 +389,28 @@ data.search_props.sid::$sid$
         <option name="charting.axisTitleX.text">Time</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search base="sid_via_introspection">
-	  <query>| timechart $intro_choice$</query>
+	  <query>| search host=$srv$*
+| timechart $intro_choice$</query>
 	</search>
       </chart>
     </panel>
   </row>
+
+  <row>
+    <panel>
+      <chart>
+	<title>Performance Metrics for Search Peers (if Any)</title>
+        <option name="link.visible">true</option>
+	<option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+	<option name="charting.chart.nullValueMode">connect</option>
+        <search base="sid_via_introspection">
+	  <query>| search host!=$srv$*
+| timechart $intro_choice$ by host</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
+
 </form>
 

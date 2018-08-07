@@ -48,6 +48,23 @@
 
   <row depends="$sdo_dash_clicked$">
     <panel>
+      <chart>
+	<title>Visits of This Dashboard (Last 30 Days)</title>
+	<option name="link.visible">false</option>
+	<option name="charting.chart">line</option>
+	<search>
+	  <query>index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app=$app|s$ view=$sdo_dash_title|s$
+| timechart count
+	  </query>
+	  <earliest>-30d</earliest>
+	  <latest>now</latest>
+	</search>
+      </chart>
+    </panel>
+  </row>
+  
+  <row depends="$sdo_dash_clicked$">
+    <panel>
       <table>
 	<title>Dashboard Search Details</title>
 	<search>

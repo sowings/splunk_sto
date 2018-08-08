@@ -30,9 +30,9 @@
 	<title>This is for the list of dashboards</title>
 	<search>
 	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:appName="$app$"
-| stats count by eai:acl.app, eai:acl.sharing, eai:acl.owner, label, title
-| eval header=label . " (" . count . ")"
 | lookup sto_dashboard_usage app AS eai:acl.app, view AS title OUTPUT count AS recent, last_hit
+| stats max(last_hit) AS last_hit, sum(recent) AS recent, count by eai:acl.app, eai:acl.sharing, eai:acl.owner, label, title
+| eval header=label . " (" . count . ")"
 | table header, title, eai:acl.app eai:acl.owner, eai:acl.sharing, count, recent, last_hit
 | convert ctime(last_hit)
 | rename header AS "Dash Title (Searches)", title AS "Filename", eai:acl.owner AS "Owner", eai:acl.app AS "App Name", eai:acl.sharing AS "Permissions", count AS "Searches", recent AS "Recent Visits", last_hit AS "Last Visit Time"</query>

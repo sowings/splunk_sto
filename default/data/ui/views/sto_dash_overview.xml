@@ -51,11 +51,18 @@
       <chart>
 	<title>Visits of This Dashboard (Last 30 Days)</title>
 	<option name="link.visible">false</option>
-	<option name="charting.chart">line</option>
+	<option name="charting.chart">column</option>
+	<option name="charting.chart.overlayFields">Hits</option>
+	<option name="charting.axisX.scale">linear</option>
+	<option name="charting.axisY.scale">linear</option>
+	<option name="charting.axisY2.enabled">1</option>
+	<option name="charting.axisY2.minimumNumber">0</option>
+	<option name="charting.axisY2.scale">linear</option>
 	<search>
-	  <query>index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app=$app|s$ view=$sdo_dash_title|s$
-| timechart count
-	  </query>
+	  <query><![CDATA[index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app=$app|s$ view=$sdo_dash_title|s$
+| rex "(?<response_ms>\d+)ms$"
+| timechart count AS Hits, avg(response_ms) AS "Average Response (ms)"]]>
+          </query>
 	  <earliest>-30d</earliest>
 	  <latest>now</latest>
 	</search>

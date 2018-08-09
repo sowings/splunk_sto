@@ -48,8 +48,12 @@
 
   <row depends="$sdo_dash_clicked$">
     <panel>
+      <input type="time" token="sto_visit_timer">
+	<label>Time Range</label>
+	<default>Last 30 days</default>
+      </input>
       <chart>
-	<title>Visits of This Dashboard (Last 30 Days)</title>
+	<title>Visits of This Dashboard</title>
 	<option name="link.visible">false</option>
 	<option name="charting.chart">column</option>
 	<option name="charting.chart.overlayFields">Hits</option>
@@ -58,13 +62,13 @@
 	<option name="charting.axisY2.enabled">1</option>
 	<option name="charting.axisY2.minimumNumber">0</option>
 	<option name="charting.axisY2.scale">linear</option>
-	<search>
+	<search id="sdo_dash_hits">
 	  <query><![CDATA[index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app=$app|s$ view=$sdo_dash_title|s$
 | rex "(?<response_ms>\d+)ms$"
 | timechart count AS Hits, avg(response_ms) AS "Average Response (ms)"]]>
           </query>
-	  <earliest>-30d</earliest>
-	  <latest>now</latest>
+	  <earliest>$sto_visit_timer.earliest_time$</earliest>
+	  <latest>$sto_visit_timer.latest_time$</latest>
 	</search>
       </chart>
     </panel>

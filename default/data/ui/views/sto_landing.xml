@@ -1,5 +1,6 @@
 <dashboard>
   <!-- -*-mode: nXML; auto-fill-mode: -1; fill-column: 99999 -*- -->
+  <label>Landing Page</label>
   <row>
     <panel>
       <html>

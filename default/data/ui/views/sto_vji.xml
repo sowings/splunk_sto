@@ -103,8 +103,13 @@ TERM($sid$) search_id='$sid$'
   <search id="sid_via_rest">
     <query>| rest /services/search/jobs/$sid$ splunk_server="$srv$"</query>
     <done>
-      <set token="rest_info_sid">$job.sid$</set>
-      <eval token="rest_info_available">if($job.resultCount$ == "0", null(), "true")</eval>
+      <condition match="$job.resultCount$ == &quot;0&quot;">
+        <set token="rest_info_available">true</set>
+        <set token="rest_info_sid">$job.sid$</set>
+      </condition>
+      <condition>	
+	<unset token="rest_info_available"/>
+      </condition>
     </done>
   </search>
 

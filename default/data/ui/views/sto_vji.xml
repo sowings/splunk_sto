@@ -118,6 +118,10 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
     </done>
   </search>
 
+  <!-- DEBUG -->
+<!--  <row><panel><table><title>DEBUGGING INFO</title><search base="you_cant_see_me"/></table></panel></row> -->
+  <!-- END DEBUG -->
+
   <row>
     <panel>
       <table>

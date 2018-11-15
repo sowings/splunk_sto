@@ -130,6 +130,19 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
     </panel>
   </row>
   
+  <row depends="$sv_remote_sid$">
+    <panel>
+      <single>
+	<title>Remote Search</title>
+	<search>
+	  <query>| makeresults | eval label="This Search ID Represents a Remote Search; Click Here to Investigate the Parent"</query>
+	</search>
+	<drilldown>
+	  <link><![CDATA[sto_vji?form.srv=$sv_remote_sh$&form.sid=$sv_remote_sid$]]></link>
+	</drilldown>
+      </single>
+    </panel>
+  </row>
   
   <row rejects="$rest_info_available$">
     <panel>

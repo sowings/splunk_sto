@@ -31,13 +31,15 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | rex field=sid "^(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+)__?(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^(?:(?<rt_marker>rt_)|(?<replica_marker>rsa_))?scheduler_(?<sid_user>\w+)__?(?<sid_app>[^_]+_)_?(?<sid_search_name>[^_]+)_at_(?<scheduler_epoch>\d+)_(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^subsearch_(?<parent_sid>(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$"
+| rex field=sid "^(?<search_type>remote)_(?<source_search_head>[-\.A-Za-z0-9]+)_(?<source_sid>.*)$"
 | rex field=sid "^subsearch_(?<parent_sid>(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+_?)_(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$$"
-| eval search_type=case(isnotnull(adhoc_epoch), "adhoc", isnotnull(summary_epoch), "acceleration", isnotnull(metadata_epoch), "metadata", isnotnull(s2_epoch), "S2", isnotnull(dash_epoch), "dashboard", isnotnull(scheduler_epoch), "scheduled")
+| eval search_type=mvappend(search_type,case(isnotnull(adhoc_epoch), "adhoc", isnotnull(summary_epoch), "acceleration", isnotnull(metadata_epoch), "metadata", isnotnull(s2_epoch), "S2", isnotnull(dash_epoch), "dashboard", isnotnull(scheduler_epoch), "scheduled"))
 | eval search_type=mvappend(search_type, case(isnotnull(rt_marker), "real-time", isnotnull(replica_marker), "replicated", isnotnull(sub_epoch), "subsearch", 1=1, null()))
 | eval sid_user=trim(sid_user, "_"), sid_app=trim(sid_app, "_")
+| fillnull value=NONE sid_user sid_app
 | eval appln=length(sid_app) % 4
 | eval app_b=case(appln=0, sid_app, appln=1, sid_app . "===", appln=2, sid_app . "==", appln=3, sid_app . "=")
-| base64 action=decode app_b
+| base64 action=decode field=app_b
 | eval sid_app=if(match(app_b, "^[[:ascii:]]+$"), app_b, sid_app)
 | eval uln=length(sid_user) % 4
 | eval user_b=case(uln=0, sid_user, uln=1, sid_user . "===", uln=2, sid_user . "==", uln=3, sid_user . "=")
@@ -48,9 +50,19 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | eval sid_user=if(match(user_b, "^[[:ascii:]]+$"), user_b, sid_user)
 | eval start_epoch=coalesce(adhoc_epoch, dash_epoch, metadata_epoch, s2_epoch, scheduler_epoch, summary_epoch, sub_epoch)
 | fields - adhoc_epoch metadata_epoch replica_marker rt_marker s2_epoch dash_epoch scheduler_epoch summary_epoch sid_owner sub_* 
-| table sid search_type start_epoch shc_member object_title sid_* parent_sid *]]></query>
+| table sid search_type start_epoch shc_member object_title sid_* parent_sid source*]]></query>
     <done>
-      <set token="search_start_epoch">$result.start_epoch$</set>
+     <condition match="$result.search_type$==&quot;remote&quot;">
+	<set token="search_is_remote">true</set>
+	<set token="sv_remote_sh">$result.source_search_head$</set>
+	<set token="sv_remote_sid">$result.source_sid$</set>
+      </condition>
+      <condition match="$result._time$ != &quot;0&quot;">
+        <set token="search_start_epoch">$result.start_epoch$</set>
+      </condition>
+      <condition>
+	<set token="search_start_epoch">$result.start_epoch$</set>
+      </condition>
     </done>
   </search>
 

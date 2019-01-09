@@ -29,7 +29,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | rex field=sid "^RemoteStorageRetrieveBuckets_(?<s2_epoch>\d+)\.(?<sid_seqno>\d+)$"
 | rex field=sid "^md_(?<metadata_epoch>\d+)\.(?<sid_seqno>\d+)$"
 | rex field=sid "^(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+)__?(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
-| rex field=sid "^(?:(?<rt_marker>rt_)|(?<replica_marker>rsa_))?scheduler_(?<sid_user>\w+)__?(?<sid_app>[^_]+_)_?(?<sid_search_name>[^_]+)_at_(?<scheduler_epoch>\d+)_(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
+| rex field=sid "^(?:(?<rt_marker>rt_)|(?<replica_marker>rsa_))?(?<sid_user>\w+)_?(?<sid_owner>\w+)__?(?<sid_app>[^_]+_)_?(?<sid_search_name>[^_]+)_at_(?<scheduler_epoch>\d+)_(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^subsearch_(?<parent_sid>(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$"
 | rex field=sid "^(?<search_type>remote)_(?<source_search_head>[-\.A-Za-z0-9]+)_(?<source_sid>.*)$"
 | rex field=sid "^subsearch_(?<parent_sid>(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+_?)_(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$$"
@@ -111,6 +111,16 @@ TERM($sid$) search_id='$sid$'
 	<unset token="rest_info_available"/>
       </condition>
     </done>
+    <error>
+      <condition>
+        <unset token="rest_info_available"/>
+      </condition>
+    </error>
+    <fail>
+      <condition>
+        <unset token="rest_info_available"/>
+      </condition>
+    </fail>
   </search>
 
   <search id="sid_via_introspection">

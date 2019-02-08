@@ -14,7 +14,7 @@
 | fields _time action info user search_id search total_run_time event_count result_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
 | eval search_id=trim(search_id, "'")
 | rex field=search_id "(?<search_family>scheduler|subsearch)_"
-| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "^SummaryDirector"), "summary", match(search_id, "(?<dash_searchc_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
+| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "^SummaryDirector"), "summary", match(search_id, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
 | stats max(eval(if(info="completed", total_run_time, 0))) AS done min(_time) AS _time list(_time) AS times list(action) AS actions list(info) as infos max(*) AS * by search_id
 | eval search_id_and_times=search_id . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "granted"))) - 1) . ";" . tostring(tonumber(mvindex(times, mvfind(infos, "completed"))) + 1)
 | search done>0 search!=""

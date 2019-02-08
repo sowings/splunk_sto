@@ -124,7 +124,8 @@ TERM($sid$) search_id='$sid$'
   </search>
 
   <search id="sid_via_introspection">
-    <query>`get_introspection_index` earliest=$search_start_epoch$ latest=$audit_latest_time$ sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
+    <query>`get_introspection_index` earliest=$search_start_epoch$ latest=$audit_latest_time$ sourcetype=splunk_resource_usage 
+component::PerProcess data.search_props.role::head OR data.search_props.role::peer
 data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
 | sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used) by host
 </query>

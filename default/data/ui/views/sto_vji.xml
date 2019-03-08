@@ -92,7 +92,6 @@ TERM($sid$) search_id='$sid$'
     latest(api_lt) AS api_lt
     earliest(apiStartTime) AS apiStartTime
     earliest(apiEndTime) AS apiEndTime
-    earliest(search) AS search
 | eval completed_time = completed_time + 1
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",

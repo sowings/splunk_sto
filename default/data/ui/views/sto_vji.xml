@@ -433,7 +433,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
 	<title>Remote Search Logs</title>
 	<option name="link.visible">false</option>
 	<search base="sv_remote_search_logs">
-	  <query>table _time server search_id active_searches elapsedTime</query>
+	  <query>table _time host search_id active_searches elapsedTime</query>
 	</search>
       </table>
     </panel>

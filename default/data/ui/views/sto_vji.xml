@@ -70,6 +70,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
     <query>`get_audit_index` earliest=$search_start_epoch$ TERM(action=search)
 (TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
 TERM($sid$) search_id='$sid$'    
+| rex "user=(?&lt;user&gt;[^,]+)"
 | stats earliest(user) AS user
     earliest(host) AS host
     earliest(savedsearch_name) AS savedsearch_name
@@ -91,7 +92,7 @@ TERM($sid$) search_id='$sid$'
     latest(api_et) AS api_et
     latest(api_lt) AS api_lt
     earliest(apiStartTime) AS apiStartTime
-    earliest(apiEndTime) AS apiEndTime
+    earliest(apiEndTime) AS apiEndTime
 | eval completed_time = completed_time + 1
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",
@@ -101,6 +102,10 @@ TERM($sid$) search_id='$sid$'
     eliminated_buckets AS "Bloom Filter Eliminated Buckets",
     considered_events AS "Events in Matching Buckets",
     total_slices AS "Slices in Matching Buckets",
+    rawdata_cache_miss AS "Rawdata Not In Cache (ms)",
+    index_cache_miss AS "TSIDX Not In Cache (ms)",
+    rawdata_time AS "Time Extracting Rawdata (ms)",
+    index_time AS "Time Examining TSIDX (ms)",
     decompressed_slices AS "Slices Decompressed"
     </query>
     <done>

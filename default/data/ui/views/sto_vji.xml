@@ -89,7 +89,7 @@ TERM($sid$) search_id='$sid$'
     latest(total_slices) AS total_slices
     latest(decompressed_slices) AS decompressed_slices
     latest(api_et) AS api_et
-    latest(api_lt) AS api_et
+    latest(api_lt) AS api_lt
     earliest(apiStartTime) AS apiStartTime
     earliest(apiEndTime) AS apiEndTime
     earliest(search) AS search

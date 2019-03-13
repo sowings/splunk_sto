@@ -1,0 +1,11 @@
+
+[ ]
+access = read : [ * ], write : [ admin, power ]
+
+[commands/base64]
+access = read : [ * ], write : [ * ]
+export = system
+owner = nobody
+
+[searchbnf]
+export = system

@@ -426,7 +426,8 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
   </row>
 
 	<search id="sv_remote_search_logs">
-	  <query><![CDATA[index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ search_id="remote_$srv$_$sid$"
+	  <query><![CDATA[index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log* earliest=$search_start_epoch$ latest=$audit_latest_time$ remote_$srv$_$sid$
+search_id="remote_$srv$_$sid$" OR sid="remote_$srv$_$sid$"
 | rex "StreamedSearch - Streamed search connection (?<state>\w+)\s"
 | fields _time host active_searches search_id server state elapsedTime search
 ]]></query>
@@ -436,9 +437,9 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
     <panel>
       <table>
 	<title>Remote Search Logs</title>
-	<option name="link.visible">false</option>
+	<option name="link.visible">true</option>
 	<search base="sv_remote_search_logs">
-	  <query>table _time host search_id active_searches elapsedTime</query>
+	  <query>table _time host search_id sid active_searches elapsedTime</query>
 	</search>
       </table>
     </panel>

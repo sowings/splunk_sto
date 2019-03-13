@@ -1,0 +1,140 @@
+<form>
+  <label>Accelerated Data Model Detail</label>
+
+  <fieldset>
+    <input type="dropdown" token="srv" searchWhenChanged="true">
+      <label>Search Head</label>
+      <choice value="*">All Search Heads</choice>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <search>
+	<query>| inputlookup sto_asset_map_datamodel
+| stats count by splunk_server
+| eval label=splunk_server . " (" . count . ")"</query>
+      </search>
+    </input>
+
+    <input type="dropdown" token="app" searchWhenChanged="true">
+      <label>Application</label>
+      <choice value="*">All Applications</choice>
+      <fieldForValue>eai:acl.app</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <default>*</default>
+      <search>
+        <query>| inputlookup sto_asset_map_datamodel | search splunk_server="$srv$" | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+      </search>
+    </input>
+
+    <input type="dropdown" token="dm" searchWhenChanged="true">
+      <label>Model Title</label>
+      <fieldForValue>title</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <search>
+	<query>| inputlookup sto_asset_map_datamodel where splunk_server="$srv$" AND eai:acl.app="$app$"</query>
+      </search>
+    </input>
+
+    <input type="time" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>Last 24 hours</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Model Details</title>
+	<search>
+	  <query>| inputlookup sto_asset_map_datamodel | search splunk_server="$srv$" eai:acl.app="$app$" title="$dm$"
+| fields - ss_name
+| rename cron_schedule AS "Cron Schedule",
+    eai:acl.app AS "App",
+    eai:acl.owner AS "Owner",
+    eai:acl.sharing AS "Sharing",
+    is_scheduled AS "Scheduled?",
+    search AS "Search String",
+    splunk_server AS "Host",
+    title AS "Data Model"
+</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+<!--
+  <search id="sdd_data_summaries">
+    <query>| rest /services/data/summaries data_model_acceleration=1
+| search search_head_guid=$srv$ name=$dm$
+| search [| rest /services/server/info splunk_server="$srv$" | fields guid | rename guid AS search_head_guid ]
+| sistats sum(total_bucket_count) sum(total_size)
+values(related_indexes) by search_head_guid, splunk_server
+    </query>
+  </search>
+
+  <row depends="$dm$">
+    <panel>
+      <table>
+	<title>Indexes Referenced by This Model</title>
+	<option name="link.visible">false</option>
+	<search base="sdd_data_summaries">
+	  <query>stats values(related_indexes) AS related_indexes
+| mvexpand related_indexes
+| eval related=split(related_indexes, ",")
+| stats count by related
+| fields - count
+| rename related_indexes AS "Related Indexes"</query>
+	</search>
+      </table>
+    </panel>
+    <panel>
+      <chart>
+	<title>Summary Usage, Count by Indexer</title>
+        <option name="link.visible">false</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.overlayFields">count</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">1</option>
+        <option name="charting.axisY2.minimumNumber">0</option>
+        <option name="charting.axisY2.scale">linear</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.axisTitleY.text">Summary Usage (Mbytes)</option>
+        <option name="charting.axisTitleY2.text">Bucket Count</option>
+	<search base="sdd_data_summaries">
+	  <query>stats sum(total_bucket_count) AS count, sum(total_size) AS size by splunk_server
+| rename splunk_server AS Indexer</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
+-->
+
+  <row>
+    <panel>
+      <table>
+	<title>Recent Runs</title>
+	<option name="drilldown">row</option>
+	<fields>["_time","Host","Application","Data Model","Status","Detail","Short SID (for inspection)"]</fields>
+	<search>
+	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler
+savedsearch_name="_ACCELERATE_DM_$app$_$dm$_ACCELERATE_"
+| fields _time host status sid member_label run_time
+| rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
+| eval app="$app$", model="$dm$"
+| eval high_status=case(status="delegated_remote", "delegated to peer " . member_label, status="delegated_remote_completion", "remote peer " . member_label . " finished", 1=1, status)
+| eval runtime_pp=if(isnotnull(run_time), "Ran for " . run_time . " (sec)", null())
+| eval Detail=coalesce(runtime_pp, reason)
+| eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| table _time host app, model, high_status, Detail, sid, ssid
+| rename host AS Host, app AS Application, model AS "Data Model", high_status AS Status, ssid AS "Short SID (for inspection)"
+	  </query>
+	</search>
+	<drilldown>
+	  <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.]]></link>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+
+</form>

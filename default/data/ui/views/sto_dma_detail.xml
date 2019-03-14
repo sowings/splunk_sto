@@ -131,7 +131,7 @@ savedsearch_name="_ACCELERATE_DM_$app$_$dm$_ACCELERATE_"
 	  </query>
 	</search>
 	<drilldown>
-	  <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.]]></link>
+	  <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.Host$]]></link>
         </drilldown>
       </table>
     </panel>

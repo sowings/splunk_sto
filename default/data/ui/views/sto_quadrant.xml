@@ -1,0 +1,322 @@
+<form>
+  <label>Search Quadrants</label>
+
+  <fieldset>
+    <input type="dropdown" token="srv">
+      <label>Search Head</label>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>splunk_server</fieldForLabel>
+      <search>
+	<query>| rest /services/server/info | search server_roles=search_head</query>
+      </search>
+    </input>
+<!--
+    <input type="dropdown" token="x_axis">
+      <label>X-Axis Metric</label>
+      <choice value="cpu_io">CPU vs. IO</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>CPU vs. IO</default>
+    </input>
+
+    <input type="dropdown" token="y_axis">
+      <label>Y-Axis Metric</label>
+      <choice value="find_proc">Decoration vs. Rawdata</choice>
+      <choice value="filter_proc">Decoration + Filtering vs. Rawdata</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>Decoration vs. Rawdata</default>
+    </input>
+
+    <input type="dropdown" token="diameter">
+      <label>Bubble Diameter Metric</label>
+      <choice value="runDuration">Runtime (secs)</choice>
+      <choice value="filter.duration_secs">Filtration Time (CPU secs)</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>Runtime (secs)</default>
+    </input>
+-->
+    <input type="time">
+      <label>Time</label>
+      <default>Last 24 hours</default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <html>
+<div id="sto_help">
+<p/>	  
+Available selections in the pulldown menus below help to refine the
+view for considering different quantities as axes in the bubble
+chart. Different combinations may offer different insights about the
+qualities of the searches being run.
+<p/>
+<ul>
+  <li><b>CPU vs. IO</b> - This is the difference between the log of
+  the time spent searching the index vs. extracting rawdata. It is
+  intended to be a correlation with the <i>rarity</i> of the search.
+  </li>
+  <li>
+    <b>Event Decoration vs. Rawdata</b> - This is the difference
+    between the log of time spent decorating events (e.g. doing field
+    extraction) and extracting the rawdata. Specifically:
+    <em>command.search.kv</em> + <em>command.search.fieldalias</em> +
+    <em>command.search.calcfields</em> +
+    <em>command.search.lookups</em> + <em>command.search.typer</em> +
+    <em>command.search.tags</em> + <em>command.search.filter</em>.
+  </li>
+  <li>
+    <b>Runtime (secs)</b> - This is the runDuration field,
+    representing the wall clock run time of the search.
+  </li>
+<!--
+  <li>
+    <b>Approximate IOPS</b> - Ths attempts to approximate the I/O cost
+    of the search by applying some "common sense" measurements to the
+    individual metrics recorded by the audit log. The formula is as
+    follows:<br/>
+    ((searched_buckets * 1) + (eliminated_buckets * 2) +
+    (decompressed_slices * 16)) / (api_lt - api_et)<br/>
+  </li>
+-->
+</ul>
+</div>
+      </html>
+    </panel>
+  </row>
+	
+  <search id="rest_quadrant">
+          <query><![CDATA[| rest /services/search/jobs splunk_server=$srv$
+| search dispatchState=DONE AND searchTotalBucketsCount!=0 
+| fields - fieldMetadata* author bundleVersion cursorTime  id keywords label latestTime eai:* performance.dispatch.stream.remote.* phase* 
+| fields sid splunk_server eventCount scanCount eventSearch resultCount performance.command.search.calcfields.duration_secs performance.command.search.fieldalias.duration_secs performance.command.search.filter.duration_secs performance.command.search.index.duration_secs performance.command.search.kv.duration_secs performance.command.search.lookups.duration_secs performance.command.search.rawdata.duration_secs runDuration performance.command.search.typer.duration_secs performance.command.search.tags.duration_secs performance.command.search.filter.duration_secs 
+| rename performance.command.search.* AS * 
+| fillnull value=0 calcfields.duration_secs fieldalias.duration_secs rawdata.duration_secs index.duration_secs kv.duration_secs lookups.duration_secs typer.duration_secs tags.duration_secs filter.duration_secs scanCount eventCount
+| eval cpu_io=log('rawdata.duration_secs') - log('index.duration_secs') 
+| eval event_finding='rawdata.duration_secs' 
+| eval event_proc='calcfields.duration_secs' + 'fieldalias.duration_secs' + 'kv.duration_secs' + 'lookups.duration_secs' + 'typer.duration_secs' + 'tags.duration_secs' + 'filter.duration_secs' 
+| eval event_filt=event_proc + 'filter.duration_secs'
+| eval find_proc=log(event_proc) - log(event_finding) 
+| eval filter_proc=log(event_proc) - log(event_filt)
+| eval scan_event=log(scanCount) - log(eventCount)
+| rex field=sid "(?<search_family>scheduler|subsearch)_" 
+| eval search_family=case(match(sid, "^\d{10}\.\d+"), "adhoc", match(sid, "^SummaryDirector"), "summary", match(sid, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$$"), "dashboard", 1=1, search_family)]]></query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+    <done>
+      <set token="rest_quadrant_sid">$job.sid$</set>
+    </done>	    
+  </search>
+
+  <row>
+    <panel>
+    <input type="dropdown" token="rest_x_axis">
+      <label>X-Axis Metric</label>
+      <choice value="cpu_io">CPU vs. IO</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>CPU vs. IO</default>
+    </input>
+
+    <input type="dropdown" token="rest_y_axis">
+      <label>Y-Axis Metric</label>
+      <choice value="find_proc">Decoration vs. Rawdata</choice>
+      <choice value="filter_proc">Decoration + Filtering vs. Rawdata</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>Decoration vs. Rawdata</default>
+    </input>
+
+    <input type="dropdown" token="rest_diameter">
+      <label>Bubble Diameter Metric</label>
+      <choice value="runDuration">Runtime (secs)</choice>
+      <choice value="filter.duration_secs">Filtration Time (CPU secs)</choice>
+      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <default>Runtime (secs)</default>
+    </input>
+
+      <title>Search Quadrants - REST Data</title>
+      <chart>
+        <option name="charting.chart">bubble</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.axisX.maximumNumber">3</option>
+        <option name="charting.axisX.minimumNumber">-3</option>
+        <option name="charting.axisY.maximumNumber">3</option>
+        <option name="charting.axisY.minimumNumber">-3</option>
+	<search base="rest_quadrant">
+	  <query>table search_family $rest_x_axis$ $rest_y_axis$ $rest_diameter$</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
+<!--
+  <row>
+    <panel>
+      <table>
+        <title>Results</title>
+        <search base="jobs_quadrant">
+	  <query>table splunk_server sid search_family cpu_io find_proc scan_event filter.duration_secs event_filt filter_proc runDuration</query>
+	</search>
+        <drilldown>
+          <link target="_blank">
+            <![CDATA[sto_vji?form.srv=$row.splunk_server$&form.sid=$row.sid$]]>
+          </link>
+        </drilldown>
+        
+      </table>
+    </panel>
+  </row>
+-->
+
+  <search id="audit_quadrant">
+    <query><![CDATA[index=_audit TERM(info=completed) TERM(action=search)
+| rex "user=(?<user>[^,]+)"
+| eval search_id=trim(search_id, "'")
+| rex field=search_id "(?<search_family>scheduler|subsearch)_"
+| eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "^SummaryDirector"), "summary", match(search_id, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
+| stats earliest(user) AS user
+    earliest(host) AS host
+    earliest(savedsearch_name) AS savedsearch_name
+    earliest(search) AS search_string
+    latest(eval(if(info="completed", _time, null()))) AS completed_time
+    latest(total_run_time) AS total_run_time
+    latest(duration_command_search_rawdata_bucketcache_miss) AS rawdata_cache_miss
+    latest(duration_command_search_index_bucketcache_miss) AS index_cache_miss
+    latest(duration_command_search_rawdata) AS rawdata_time
+    latest(duration_command_search_index) AS index_time
+    latest(scan_count) AS scan_count
+    latest(event_count) AS event_count
+    latest(search_startup_time) AS search_startup_time
+    latest(searched_buckets) AS searched_buckets
+    latest(eliminated_buckets) AS eliminated_buckets
+    latest(considered_events) AS considered_events
+    latest(total_slices) AS total_slices
+    latest(decompressed_slices) AS decompressed_slices
+    latest(api_et) AS api_et
+    latest(api_lt) AS api_lt
+    latest(search_family) AS search_family
+    by search_id
+| eval completed_time = completed_time + 1, span=round(api_lt - api_et, 0)
+| eval span_pretty=tostring(round(span, 0), "duration")
+| eval approx_iops=((searched_buckets * 1) + (eliminated_buckets * 2) + (decompressed_slices * 16)) / (api_lt - api_et)
+| eval scan_event=log(scan_count) - log(event_count)
+| eval cpu_io=log(rawdata_time) - log(index_time)
+| fields - api_et api_lt]]></query>
+    <done>
+      <set token="audit_quadrant_sid">$job.sid$</set>
+    </done>	    
+  </search>
+
+  <row>
+    <panel>
+      <input type="dropdown" token="audit_color" searchWhenChanged="true">
+	<label>Color Metric</label>
+	<choice value="search_family">Search Family</choice>
+	<default>Search Family</default>
+      </input>
+      <input type="dropdown" token="audit_x_axis" searchWhenChanged="true">
+        <label>X-Axis Metric</label>
+        <choice value="cpu_io">CPU vs. IO</choice>
+        <choice value="scan_event">Scan Count vs. Event Count</choice>
+        <default>CPU vs. IO</default>
+      </input>
+
+      <input type="dropdown" token="audit_y_axis" searchWhenChanged="true">
+        <label>Y-Axis Metric</label>
+        <choice value="scan_event">Scan Count vs. Event Count</choice>
+        <default>Scan Count vs. Event Count</default>
+      </input>
+
+      <input type="dropdown" token="audit_diameter" searchWhenChanged="true">
+        <label>Bubble Diameter Metric</label>
+        <choice value="approx_iops">Approximate IOPS</choice>
+        <choice value="span">Search Span (secs)</choice>
+        <choice value="total_run_time">Runtime (secs)</choice>
+        <default>Approximate IOPS</default>
+      </input>
+      <chart>
+        <title>Search Quadrants - Audit Log Data</title>
+        <option name="charting.chart">bubble</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.axisX.maximumNumber">3</option>
+        <option name="charting.axisX.minimumNumber">-3</option>
+        <option name="charting.axisY.maximumNumber">3</option>
+        <option name="charting.axisY.minimumNumber">-3</option>
+	<search base="audit_quadrant">
+	  <query>table $audit_color$ $audit_x_axis$ $audit_y_axis$ $audit_diameter$</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
+
+  <search id="introspection_quadrant">
+    <query>index=_introspection component::PerProcess    data.process_type::search 
+| eval sid=replace('data.search_props.sid', "^remote_[^_]+_(.*)$", "\1")  
+| stats earliest(data.search_props.provenance) AS provenance,
+    earliest(data.search_props.label) AS savedsearch_name,
+    avg(eval(if('data.search_props.role' == "peer", 'data.pct_cpu', null()))) AS avg_idx_cpu,
+    avg(eval(if('data.search_props.role' == "peer", 'data.read_mb', null()))) AS avg_idx_read_mb,
+    avg(eval(if('data.search_props.role' == "peer", 'data.written_mb', null()))) AS avg_idx_written_mb,
+    avg(eval(if('data.search_props.role' == "peer", 'data.pct_memory', null()))) AS avg_idx_pct_mem,
+    avg(eval(if('data.search_props.role' == "head", 'data.pct_cpu', null()))) AS avg_sh_cpu,
+    avg(eval(if('data.search_props.role' == "head", 'data.read_mb', null()))) AS avg_sh_read_mb,
+    avg(eval(if('data.search_props.role' == "head", 'data.written_mb', null()))) AS avg_sh_written_mb,
+    avg(eval(if('data.search_props.role' == "head", 'data.pct_memory', null()))) AS avg_sh_pct_mem,
+    max(eval(if('data.search_props.role' == "peer", 'data.pct_cpu', null()))) AS max_idx_cpu,
+    max(eval(if('data.search_props.role' == "peer", 'data.read_mb', null()))) AS max_idx_read_mb,
+    max(eval(if('data.search_props.role' == "peer", 'data.written_mb', null()))) AS max_idx_written_mb,
+    max(eval(if('data.search_props.role' == "peer", 'data.pct_memory', null()))) AS max_idx_pct_mem,
+    max(eval(if('data.search_props.role' == "head", 'data.pct_cpu', null()))) AS max_sh_cpu,
+    max(eval(if('data.search_props.role' == "head", 'data.read_mb', null()))) AS max_sh_read_mb,
+    max(eval(if('data.search_props.role' == "head", 'data.written_mb', null()))) AS max_sh_written_mb,
+    max(eval(if('data.search_props.role' == "head", 'data.pct_memory', null()))) AS max_sh_pct_mem,
+    BY data.search_props.type, data.search_props.mode, sid
+| fillnull value=0 avg_idx_cpu avg_sh_cpu max_idx_mem max_sh_mem avg_idx_pct_mem avg_sh_pct_mem avg_idx_read_mb avg_sh_read_mb avg_idx_written_mb avg_sh_written_mb max_sh_read_mb max_idx_read_mb max_sh_written_mb max_idx_written_mb
+    </query>
+    <done>
+      <set token="introspection_quadrant_sid">$job.sid$</set>
+    </done>	    
+  </search>
+  <row>
+    <panel>
+      <input type="dropdown" token="int_color" searchWhenChanged="true">
+	<label>Color Metric</label>
+	<choice value="data.search_props.mode">Search Mode</choice>
+	<choice value="data.search_props.type">Search Type</choice>
+	<default>Search Type</default>
+      </input>
+      <input type="dropdown" token="int_x_axis" searchWhenChanged="true">
+        <label>X-Axis Metric</label>
+        <choice value="avg_sh_cpu">Average SH CPU</choice>
+        <default>Average SH CPU</default>
+      </input>
+
+      <input type="dropdown" token="int_y_axis" searchWhenChanged="true">
+        <label>Y-Axis Metric</label>
+        <choice value="avg_idx_cpu">Average Indexer CPU</choice>
+        <default>Average Indexer CPU</default>
+      </input>
+
+      <input type="dropdown" token="int_diameter" searchWhenChanged="true">
+        <label>Bubble Diameter Metric</label>
+        <choice value="avg_idx_pct_mem">Average Indexer Memory</choice>
+        <choice value="max_sh_mem">Max SH Memory</choice>
+        <default>Max SH Memory</default>
+      </input>
+
+      <chart>
+	<title>Search Quadrants - Introspection Data</title>
+        <option name="charting.chart">bubble</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.axisX.maximumNumber">3</option>
+        <option name="charting.axisX.minimumNumber">-3</option>
+        <option name="charting.axisY.maximumNumber">3</option>
+        <option name="charting.axisY.minimumNumber">-3</option>
+
+	<search base="introspection_quadrant">
+	  <query>| table $int_color$ $int_x_axis$ $int_y_axis$ $int_diameter$</query>
+	</search>
+
+	
+      </chart>
+    </panel>
+  </row>
+</form>

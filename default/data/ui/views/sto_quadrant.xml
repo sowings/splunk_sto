@@ -21,7 +21,7 @@
     <input type="dropdown" token="y_axis">
       <label>Y-Axis Metric</label>
       <choice value="find_proc">Decoration vs. Rawdata</choice>
-      <choice value="filter_proc">Decoration + Filtering vs. Rawdata</choice>
+      <choice value="Decoration + Filtering vs. Rawdata">Decoration + Filtering vs. Rawdata</choice>
       <choice value="scan_event">Scan Count vs. Event Count</choice>
       <default>Decoration vs. Rawdata</default>
     </input>
@@ -99,7 +99,12 @@ qualities of the searches being run.
 | eval filter_proc=log(event_proc) - log(event_filt)
 | eval scan_event=log(scanCount) - log(eventCount)
 | rex field=sid "(?<search_family>scheduler|subsearch)_" 
-| eval search_family=case(match(sid, "^\d{10}\.\d+"), "adhoc", match(sid, "^SummaryDirector"), "summary", match(sid, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$$"), "dashboard", 1=1, search_family)]]></query>
+| eval search_family=case(match(sid, "^\d{10}\.\d+"), "adhoc", match(sid, "^SummaryDirector"), "summary", match(sid, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$$"), "dashboard", 1=1, search_family)
+| rename cpu_io AS "CPU vs. IO"
+  find_proc AS "Decoration vs. Rawdata"
+  filter_proc AS "Decoration + Filtering vs. Rawdata"
+  scan_event AS "Scan Count vs. Event Count"
+]]></query>
           <earliest>@d</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
@@ -108,20 +113,82 @@ qualities of the searches being run.
     </done>	    
   </search>
 
+
+  <search id="voltron_quadrant">
+    <query>| loadjob $rest_quadrant_sid$ | rename sid AS search_id
+    | join type=left search_id [ | loadjob $audit_quadrant_sid$ ]
+    | join type=left search_id [ | loadjob $introspection_quadrant_sid$ ]
+    </query>
+  </search>
+    
+  <row>
+    <panel>
+      <input type="dropdown" token="voltron_color" searchWhenChanged="true">
+	<label>Color Metric</label>
+	<choice value="search_family">Search Family</choice>
+	<choice value="data.search_props.mode">Search Mode</choice>
+	<choice value="data.search_props.type">Search Type</choice>
+	<default>Search Family</default>
+      </input>
+
+      <input type="dropdown" token="voltron_x_axis">
+        <label>X-Axis Metric</label>
+        <choice value="CPU vs. IO">CPU vs. IO</choice>
+        <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
+        <choice value="Average SH CPU">Average SH CPU</choice>
+        <default>CPU vs. IO</default>
+      </input>
+
+      <input type="dropdown" token="voltron_y_axis">
+        <label>Y-Axis Metric</label>
+        <choice value="Decoration vs. Rawdata">Decoration vs. Rawdata</choice>
+        <choice value="Decoration + Filtering vs. Rawdata">Decoration + Filtering vs. Rawdata</choice>
+        <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
+        <choice value="Average Indexer CPU">Average Indexer CPU</choice>
+        <default>Decoration vs. Rawdata</default>
+      </input>
+
+      <input type="dropdown" token="rest_diameter">
+        <label>Bubble Diameter Metric</label>
+        <choice value="Filtration time (CPU secs)">Filtration Time (CPU secs)</choice>
+        <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
+        <choice value="Approximate IOPS">Approximate IOPS</choice>
+        <choice value="Search Span (secs)">Search Span (secs)</choice>
+        <choice value="Runtime (secs)">Runtime (secs)</choice>
+        <choice value="Average Indexer Memory">Average Indexer Memory</choice>
+        <choice value="Max SH Memory">Max SH Memory</choice>
+        <default>Runtime (secs)</default>
+      </input>
+      <chart>
+	<title>Composite Quadrant Set</title>
+	<option name="charting.chart">bubble</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.axisX.maximumNumber">3</option>
+        <option name="charting.axisX.minimumNumber">-3</option>
+        <option name="charting.axisY.maximumNumber">3</option>
+        <option name="charting.axisY.minimumNumber">-3</option>
+
+      	<search base="voltron_quadrant">
+	  <query>| table $int_color|s$ $int_x_axis|s$ $int_y_axis|s$ $int_diameter|s$</query>
+	</search>
+      </chart>
+    </panel>
+  </row>
+
   <row>
     <panel>
     <input type="dropdown" token="rest_x_axis">
       <label>X-Axis Metric</label>
-      <choice value="cpu_io">CPU vs. IO</choice>
+      <choice value="CPU vs. IO">CPU vs. IO</choice>
       <choice value="scan_event">Scan Count vs. Event Count</choice>
       <default>CPU vs. IO</default>
     </input>
 
     <input type="dropdown" token="rest_y_axis">
       <label>Y-Axis Metric</label>
-      <choice value="find_proc">Decoration vs. Rawdata</choice>
-      <choice value="filter_proc">Decoration + Filtering vs. Rawdata</choice>
-      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <choice value="Decoration vs. Rawdata">Decoration vs. Rawdata</choice>
+      <choice value="Decoration + Filtering vs. Rawdata">Decoration + Filtering vs. Rawdata</choice>
+      <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
       <default>Decoration vs. Rawdata</default>
     </input>
 
@@ -129,7 +196,7 @@ qualities of the searches being run.
       <label>Bubble Diameter Metric</label>
       <choice value="runDuration">Runtime (secs)</choice>
       <choice value="filter.duration_secs">Filtration Time (CPU secs)</choice>
-      <choice value="scan_event">Scan Count vs. Event Count</choice>
+      <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
       <default>Runtime (secs)</default>
     </input>
 
@@ -142,7 +209,7 @@ qualities of the searches being run.
         <option name="charting.axisY.maximumNumber">3</option>
         <option name="charting.axisY.minimumNumber">-3</option>
 	<search base="rest_quadrant">
-	  <query>table search_family $rest_x_axis$ $rest_y_axis$ $rest_diameter$</query>
+	  <query>table search_family $rest_x_axis|s$ $rest_y_axis|s$ $rest_diameter|s$</query>
 	</search>
       </chart>
     </panel>
@@ -199,6 +266,11 @@ qualities of the searches being run.
 | eval approx_iops=((searched_buckets * 1) + (eliminated_buckets * 2) + (decompressed_slices * 16)) / (api_lt - api_et)
 | eval scan_event=log(scan_count) - log(event_count)
 | eval cpu_io=log(rawdata_time) - log(index_time)
+| rename cpu_io AS "CPU vs. IO",
+    scan_event AS "Scan Count vs. Event Count",
+    approx_iops AS "Approximate IOPS",
+    search_family AS "Search Family",
+    span AS "Search Span (secs)"
 | fields - api_et api_lt]]></query>
     <done>
       <set token="audit_quadrant_sid">$job.sid$</set>
@@ -209,27 +281,27 @@ qualities of the searches being run.
     <panel>
       <input type="dropdown" token="audit_color" searchWhenChanged="true">
 	<label>Color Metric</label>
-	<choice value="search_family">Search Family</choice>
+	<choice value="Search Family">Search Family</choice>
 	<default>Search Family</default>
       </input>
       <input type="dropdown" token="audit_x_axis" searchWhenChanged="true">
         <label>X-Axis Metric</label>
-        <choice value="cpu_io">CPU vs. IO</choice>
-        <choice value="scan_event">Scan Count vs. Event Count</choice>
+        <choice value="CPU vs. IO">CPU vs. IO</choice>
+        <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
         <default>CPU vs. IO</default>
       </input>
 
       <input type="dropdown" token="audit_y_axis" searchWhenChanged="true">
         <label>Y-Axis Metric</label>
-        <choice value="scan_event">Scan Count vs. Event Count</choice>
+        <choice value="Scan Count vs. Event Count">Scan Count vs. Event Count</choice>
         <default>Scan Count vs. Event Count</default>
       </input>
 
       <input type="dropdown" token="audit_diameter" searchWhenChanged="true">
         <label>Bubble Diameter Metric</label>
-        <choice value="approx_iops">Approximate IOPS</choice>
-        <choice value="span">Search Span (secs)</choice>
-        <choice value="total_run_time">Runtime (secs)</choice>
+        <choice value="Approximate IOPS">Approximate IOPS</choice>
+        <choice value="Search Span (secs)">Search Span (secs)</choice>
+        <choice value="Runtime (secs)">Runtime (secs)</choice>
         <default>Approximate IOPS</default>
       </input>
       <chart>
@@ -241,7 +313,8 @@ qualities of the searches being run.
         <option name="charting.axisY.maximumNumber">3</option>
         <option name="charting.axisY.minimumNumber">-3</option>
 	<search base="audit_quadrant">
-	  <query>table $audit_color$ $audit_x_axis$ $audit_y_axis$ $audit_diameter$</query>
+	  <query>rename total_run_time AS "Runtime (secs)"
+| table $audit_color|s$ $audit_x_axis|s$ $audit_y_axis|s$ $audit_diameter|s$</query>
 	</search>
       </chart>
     </panel>
@@ -249,7 +322,7 @@ qualities of the searches being run.
 
   <search id="introspection_quadrant">
     <query>index=_introspection component::PerProcess    data.process_type::search 
-| eval sid=replace('data.search_props.sid', "^remote_[^_]+_(.*)$", "\1")  
+| eval search_id=replace('data.search_props.sid', "^remote_[^_]+_(.*)$", "\1")  
 | stats earliest(data.search_props.provenance) AS provenance,
     earliest(data.search_props.label) AS savedsearch_name,
     avg(eval(if('data.search_props.role' == "peer", 'data.pct_cpu', null()))) AS avg_idx_cpu,
@@ -268,8 +341,15 @@ qualities of the searches being run.
     max(eval(if('data.search_props.role' == "head", 'data.read_mb', null()))) AS max_sh_read_mb,
     max(eval(if('data.search_props.role' == "head", 'data.written_mb', null()))) AS max_sh_written_mb,
     max(eval(if('data.search_props.role' == "head", 'data.pct_memory', null()))) AS max_sh_pct_mem,
-    BY data.search_props.type, data.search_props.mode, sid
+    BY data.search_props.type, data.search_props.mode, search_id
 | fillnull value=0 avg_idx_cpu avg_sh_cpu max_idx_mem max_sh_mem avg_idx_pct_mem avg_sh_pct_mem avg_idx_read_mb avg_sh_read_mb avg_idx_written_mb avg_sh_written_mb max_sh_read_mb max_idx_read_mb max_sh_written_mb max_idx_written_mb
+| rename data.search_props.type AS "Search Type",
+    data.search_props.mode AS "Search Mode",
+    avg_sh_cpu AS "Average SH CPU",
+    avg_idx_cpu AS "Average Indexer CPU",
+    avg_idx_pct_mem AS "Average Indexer Memory",
+    max_sh_mem AS "Max SH Memory"
+    
     </query>
     <done>
       <set token="introspection_quadrant_sid">$job.sid$</set>
@@ -279,26 +359,26 @@ qualities of the searches being run.
     <panel>
       <input type="dropdown" token="int_color" searchWhenChanged="true">
 	<label>Color Metric</label>
-	<choice value="data.search_props.mode">Search Mode</choice>
-	<choice value="data.search_props.type">Search Type</choice>
+	<choice value="Search Mode">Search Mode</choice>
+	<choice value="Search Type">Search Type</choice>
 	<default>Search Type</default>
       </input>
       <input type="dropdown" token="int_x_axis" searchWhenChanged="true">
         <label>X-Axis Metric</label>
-        <choice value="avg_sh_cpu">Average SH CPU</choice>
+        <choice value="Average SH CPU">Average SH CPU</choice>
         <default>Average SH CPU</default>
       </input>
 
       <input type="dropdown" token="int_y_axis" searchWhenChanged="true">
         <label>Y-Axis Metric</label>
-        <choice value="avg_idx_cpu">Average Indexer CPU</choice>
+        <choice value="Average Indexer CPU">Average Indexer CPU</choice>
         <default>Average Indexer CPU</default>
       </input>
 
       <input type="dropdown" token="int_diameter" searchWhenChanged="true">
         <label>Bubble Diameter Metric</label>
-        <choice value="avg_idx_pct_mem">Average Indexer Memory</choice>
-        <choice value="max_sh_mem">Max SH Memory</choice>
+        <choice value="Average Indexer Memory">Average Indexer Memory</choice>
+        <choice value="Max SH Memory">Max SH Memory</choice>
         <default>Max SH Memory</default>
       </input>
 
@@ -312,7 +392,7 @@ qualities of the searches being run.
         <option name="charting.axisY.minimumNumber">-3</option>
 
 	<search base="introspection_quadrant">
-	  <query>| table $int_color$ $int_x_axis$ $int_y_axis$ $int_diameter$</query>
+	  <query>| table $int_color|s$ $int_x_axis|s$ $int_y_axis|s$ $int_diameter|s$</query>
 	</search>
 
 	

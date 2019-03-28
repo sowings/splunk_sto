@@ -100,10 +100,11 @@ qualities of the searches being run.
 | eval scan_event=log(scanCount) - log(eventCount)
 | rex field=sid "(?<search_family>scheduler|subsearch)_" 
 | eval search_family=case(match(sid, "^\d{10}\.\d+"), "adhoc", match(sid, "^SummaryDirector"), "summary", match(sid, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$$"), "dashboard", 1=1, search_family)
-| rename cpu_io AS "CPU vs. IO"
-  find_proc AS "Decoration vs. Rawdata"
-  filter_proc AS "Decoration + Filtering vs. Rawdata"
-  scan_event AS "Scan Count vs. Event Count"
+| rename cpu_io AS "CPU vs. IO",
+  find_proc AS "Decoration vs. Rawdata",
+  filter_proc AS "Decoration + Filtering vs. Rawdata",
+  scan_event AS "Scan Count vs. Event Count",
+  search_family AS "Search Family"
 ]]></query>
           <earliest>@d</earliest>
           <latest>now</latest>
@@ -209,7 +210,7 @@ qualities of the searches being run.
         <option name="charting.axisY.maximumNumber">3</option>
         <option name="charting.axisY.minimumNumber">-3</option>
 	<search base="rest_quadrant">
-	  <query>table search_family $rest_x_axis|s$ $rest_y_axis|s$ $rest_diameter|s$</query>
+	  <query>table "Search Family" $rest_x_axis|s$ $rest_y_axis|s$ $rest_diameter|s$</query>
 	</search>
       </chart>
     </panel>

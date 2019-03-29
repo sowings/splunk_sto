@@ -1,0 +1,48 @@
+<form>
+  <label>Search Data Use (Indexes and Time)</label>
+  <fieldset>
+    <input type="dropdown" token="srv" searchWhenChanged="true">
+      <label>Search Head</label>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>splunk_server</fieldForLabel>
+      <search>
+	<query>| inputlookup sto_asset_map_savedsearch | stats count by splunk_server</query>
+      </search>
+    </input>
+  </fieldset>
+
+  <search id="scheduled_data_use_base">
+    <query><![CDATA[| inputlookup sto_asset_map_savedsearch where splunk_server="$srv$"
+| replace "now" WITH "+0s" IN dispatch.latest_time
+| eval et=relative_time(now(), 'dispatch.earliest_time'),
+       lt=relative_time(now(), 'dispatch.latest_time')
+| eval dispatch_span=lt-et
+| rex field=search "earliest=(?<s_et>[-+@\w\d]+)\s"
+| rex field=search "latest=(?<s_lt>[-+@\w\d]+)\s"
+| fillnull value="+0s" s_lt
+| eval s_et=relative_time(now(), s_et), s_lt=relative_time(now(), s_lt)
+| eval search_span=s_lt-s_et]]></query>
+  </search>
+
+  <row>
+    <panel>
+      <table>
+	<title>Time Range of Scheduled Searches</title>
+	<search base="scheduled_data_use_base">
+	  <query>search is_scheduled=1</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Explicit Index Use</title>
+	<search base="scheduled_data_use_base">
+	  <query>search is_scheduled=1</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+</form>

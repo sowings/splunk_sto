@@ -1,0 +1,62 @@
+<form>
+  <label>Data Model Overview</label>
+  <fieldset>
+    <input type="dropdown" token="srv" searchWhenChanged="true">
+      <label>Search Head</label>
+      <choice value="*">All Search Heads</choice>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <search>
+	<query>| inputlookup sto_asset_map_datamodel
+| stats count by splunk_server
+| eval label=splunk_server . " (" . count . ")"</query>
+      </search>
+    </input>
+
+    <input type="dropdown" token="app" searchWhenChanged="true">
+      <label>Application</label>
+      <choice value="*">All Applications</choice>
+      <fieldForValue>eai:acl.app</fieldForValue>
+      <fieldForLabel>label</fieldForLabel>
+      <default>*</default>
+      <search>
+        <query>| inputlookup sto_asset_map_datamodel | search splunk_server="$srv$" | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+      </search>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Accelerated Data Models Found in Scope ($job.resultCount$)</title>
+	<option name="drilldown">row</option>
+	<search>
+	  <query>| inputlookup sto_asset_map_datamodel where is_scheduled=1
+| search splunk_server="$srv$" eai:acl.app="$app$"	  
+| table splunk_server, title, eai:acl.app eai:acl.owner eai:acl.sharing, cron_schedule
+| rename splunk_server AS "Search Head", title AS "Model Name", eai:acl.app AS App, eai:acl.owner AS "Owner", cron_schedule AS "Search Schedule", eai:acl.sharing AS "Model Visibility"
+</query>
+        </search>
+	<drilldown>
+f	  <link><![CDATA[sto_dma_detail?form.srv=$row.Search Head$&form.app=$row.App$&form.dm=$row.Model Name$]]></link>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+
+
+  <row>
+    <panel>
+      <table>
+	<title>Non-Accelerated Data Models Found in Scope ($job.resultCount$)</title>
+	<search>
+	  <query>| inputlookup sto_asset_map_datamodel
+| search NOT is_scheduled=1 splunk_server="$srv$" eai:acl.app="$app$"	  
+| table title, eai:acl.app eai:acl.owner eai:acl.sharing
+| rename title AS "Model Name", eai:acl.app AS App, eai:acl.owner AS "Owner", eai:acl.sharing AS "Model Visibility"
+</query>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

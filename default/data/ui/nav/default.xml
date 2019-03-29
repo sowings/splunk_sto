@@ -20,6 +20,7 @@
   </collection>
   <collection label="Taxonomy" >
     <view name="sto_taxonomy" />
+    <view name="sto_quadrant" />
   </collection>
   <collection label="Inspection">
     <view name="sto_vji" />

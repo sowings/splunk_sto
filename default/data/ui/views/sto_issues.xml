@@ -1,0 +1,72 @@
+<dashboard>
+  <label>Bad Things</label>
+
+  <row>
+    <panel>
+      <table>
+	<title>Data Model Acceleration Overlap</title>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Users Encountering Queued Searches</title>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Saved Searches Running Over Period</title>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Searches Requiring Cache Fetch</title>
+	<search>
+	  <query><![CDATA[index=_audit TERM(action=search)
+(TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
+| rex "user=(?<user>[^,]+)"
+| eval search_id=trim(search_id, "'")
+| stats earliest(user) AS user
+    earliest(host) AS host
+    earliest(savedsearch_name) AS savedsearch_name
+    earliest(search) AS search_string
+    latest(eval(if(info="completed", _time, null()))) AS completed_time
+    latest(total_run_time) AS total_run_time
+    latest(duration_command_search_rawdata_bucketcache_miss) AS rawdata_cache_miss
+    latest(duration_command_search_index_bucketcache_miss) AS index_cache_miss
+    latest(duration_command_search_rawdata) AS rawdata_time
+    latest(duration_command_search_index) AS index_time
+    latest(invocations_command_search_rawdata_bucketcache_miss) AS rawdata_cache_miss_count
+    latest(invocations_command_search_index_bucketcache_miss) AS index_cache_miss_count
+    latest(invocations_command_search_rawdata) AS rawdata_count
+    latest(invocations_command_search_index) AS index_count
+    latest(scan_count) AS scan_count
+    latest(event_count) AS event_count
+    latest(search_startup_time) AS search_startup_time
+    latest(searched_buckets) AS searched_buckets
+    latest(eliminated_buckets) AS eliminated_buckets
+    latest(considered_events) AS considered_events
+    latest(total_slices) AS total_slices
+    latest(decompressed_slices) AS decompressed_slices
+    latest(api_et) AS api_et
+    latest(api_lt) AS api_lt
+    by search_id
+| eval span=round(api_lt - api_et, 0)
+| eval span_pretty=tostring(round(span, 0), "duration")
+| fillnull value=0 rawdata_cache_hit_count rawdata_cache_miss_count index_cache_hit_count index_cache_miss_count
+| eval rawdata_ratio=round(rawdata_cache_hit_count * 100 / (rawdata_cache_hit_count + rawdata_cache_miss_count), 2), index_ratio=round(index_cache_hit_count * 100 / (index_cache_hit_count + index_cache_miss), 2)
+| where isnotnull(rawdata_ratio) OR isnotnull(index_ratio)
+]]></query>
+	</search>
+      </table>
+    </panel>
+  </row>
+</dashboard>

@@ -24,6 +24,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 
   <search id="you_cant_see_me">
     <query><![CDATA[| makeresults | eval sid="$sid$"
+| rename comment AS "Straight up adhoc searches"
 | rex field=sid "^(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^SummaryDirector_(?<summary_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^RemoteStorageRetrieveBuckets_(?<s2_epoch>\d+)\.(?<sid_seqno>\d+)$"
@@ -32,9 +33,9 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | rex field=sid "^(?:(?<rt_marker>rt_)|(?<replica_marker>rsa_))?(?<sid_user>\w+)_?(?<sid_owner>\w+)__?(?<sid_app>[^_]+_)_?(?<sid_search_name>[^_]+)_at_(?<scheduler_epoch>\d+)_(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
 | rex field=sid "^subsearch_(?<parent_sid>(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$"
 | rex field=sid "^(?<search_type>remote)_(?<source_search_head>[-\.A-Za-z0-9]+)_(?<source_sid>.*)$"
-| rex field=sid "^subsearch_(?<parent_sid>(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+_?)_(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$$"
+| rex field=sid "^subsearch_(?<parent_sid>(?<sid_user>\w+?)__?(?<sid_owner>\w+?)_(?<sid_app>[^_]+?)__(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$$"
 | eval search_type=mvappend(search_type,case(isnotnull(adhoc_epoch), "adhoc", isnotnull(summary_epoch), "acceleration", isnotnull(metadata_epoch), "metadata", isnotnull(s2_epoch), "S2", isnotnull(dash_epoch), "dashboard", isnotnull(scheduler_epoch), "scheduled"))
-| eval search_type=mvappend(search_type, case(isnotnull(rt_marker), "real-time", isnotnull(replica_marker), "replicated", isnotnull(sub_epoch), "subsearch", 1=1, null()))
+| eval search_type=mvappend(search_type, case(isnotnull(rt_marker), "real-time", isnotnull(replica_marker), "replicated", isnotnull(subsearch_marker), "subsearch", 1=1, null()))
 | eval sid_user=trim(sid_user, "_"), sid_app=trim(sid_app, "_")
 | fillnull value=NONE sid_user sid_app
 | eval appln=length(sid_app) % 4
@@ -49,19 +50,29 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | eval object_title=mvdedup(object_title)
 | eval sid_user=if(match(user_b, "^[[:ascii:]]+$"), user_b, sid_user)
 | eval start_epoch=coalesce(adhoc_epoch, dash_epoch, metadata_epoch, s2_epoch, scheduler_epoch, summary_epoch, sub_epoch)
+| eval sid_pieces=split(sid, "_")
+| eval sid_pieces=split(sid, "_")
+| eval subsearch_marker=if(mvindex(sid_pieces, 0) == "subsearch", "true", null())
+| eval parent_sid=if(subsearch_marker=="true", replace(replace(sid, "subsearch_+(.*)", "\1"), "^(.*)_\d+\.\d+$", "\1"), sid)
 | fields - adhoc_epoch metadata_epoch replica_marker rt_marker s2_epoch dash_epoch scheduler_epoch summary_epoch sid_owner sub_* 
-| table sid search_type start_epoch shc_member object_title sid_* parent_sid source*]]></query>
+| table sid search_type start_epoch shc_member object_title sid_* subsearch_marker parent_sid source*]]></query>
     <done>
      <condition match="$result.search_type$==&quot;remote&quot;">
 	<set token="search_is_remote">true</set>
 	<set token="sv_remote_sh">$result.source_search_head$</set>
 	<set token="sv_remote_sid">$result.source_sid$</set>
-      </condition>
+     </condition>
+     <condition match="$result.subsearch_marker$==&quot;true&quot;">
+       <set token="search_is_subsearch">true</set>
+       <set token="sv_parent_sid">$result.parent_sid$</set>
+     </condition>
       <condition match="$result._time$ != &quot;0&quot;">
         <set token="search_start_epoch">$result.start_epoch$</set>
       </condition>
       <condition>
 	<set token="search_start_epoch">$result.start_epoch$</set>
+	<unset token="search_is_subsearch"/>
+	<unset token="search_is_remote"/>
       </condition>
     </done>
   </search>
@@ -180,6 +191,20 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
     </panel>
   </row>
   
+  <row>
+    <panel>
+      <single>
+	<title>Subsearch</title>
+	<search>
+	  <query>| makeresults | eval label="This Search ID Represents a Subsearch; Click Here to Investigate the Parent"</query>
+	</search>
+	<drilldown>
+	  <link><![CDATA[sto_vji?form.srv=$srv$&form.sid=$sv_parent_sid$]]></link>
+	</drilldown>
+      </single>
+    </panel>
+  </row>
+    
   <row rejects="$rest_info_available$">
     <panel>
     <single>

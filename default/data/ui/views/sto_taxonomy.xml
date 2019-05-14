@@ -1,8 +1,14 @@
 <form>
   <label>Search Taxonomy</label>
   <fieldset>
-    <input type="text" token="sh">
+    <input type="dropdown" token="srv" searchWhenChanged="true">
       <label>Search Head</label>
+      <choice value="*">All Search Heads</choice>
+      <fieldForValue>splunk_server</fieldForValue>
+      <fieldForLabel>splunk_server</fieldForLabel>
+      <search>
+	<query>| rest /services/server/info splunk_server=*</query>
+      </search>
     </input>
     <input type="time">
       <default>Last 60 minutes</default>
@@ -10,7 +16,7 @@
   </fieldset>
 
   <search id="timed_audit">
-    <query><![CDATA[`get_audit_index` host="$sh$" TERM(action=search) TERM(info=granted) OR TERM(info=completed)
+    <query><![CDATA[`get_audit_index` host="$srv$" TERM(action=search) TERM(info=granted) OR TERM(info=completed)
 | fields _time action info user search_id search total_run_time event_count result_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
 | eval search_id=trim(search_id, "'")
 | rex field=search_id "(?<search_family>scheduler|subsearch)_"

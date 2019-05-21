@@ -65,6 +65,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
      <condition match="$result.subsearch_marker$==&quot;true&quot;">
        <set token="search_is_subsearch">true</set>
        <set token="sv_parent_sid">$result.parent_sid$</set>
+       <set token="search_start_epoch">$result.start_epoch$</set>
      </condition>
       <condition match="$result._time$ != &quot;0&quot;">
         <set token="search_start_epoch">$result.start_epoch$</set>
@@ -80,7 +81,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
   <search id="sid_via_audit">
     <query>`get_audit_index` earliest=$search_start_epoch$ TERM(action=search)
 (TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
-TERM($sid$) search_id='$sid$'    
+(TERM($sid$) search_id='$sid$') OR (TERM(subsearch_$sid$_*) search_id='subsearch_$sid$_*')
 | rex "user=(?&lt;user&gt;[^,]+)"
 | stats earliest(user) AS user
     earliest(host) AS host
@@ -102,6 +103,7 @@ TERM($sid$) search_id='$sid$'
     latest(decompressed_slices) AS decompressed_slices
     latest(api_et) AS api_et
     latest(api_lt) AS api_lt
+    by search_id
 | eval completed_time = completed_time + 1, span=round(api_lt - api_et, 0)
 | eval span_pretty=tostring(round(span, 0), "duration")
 | fields - api_et api_lt
@@ -130,7 +132,7 @@ TERM($sid$) search_id='$sid$'
   <search id="sid_via_rest">
     <query>| rest /services/search/jobs/$sid$ splunk_server="$srv$"</query>
     <done>
-      <condition match="$job.resultCount$ != &quot;0&quot;">
+      <condition match="$job.resultCount$ != 0">
         <set token="rest_info_available">true</set>
         <set token="rest_info_sid">$job.sid$</set>
       </condition>
@@ -191,7 +193,7 @@ data.search_props.sid::$sid$ OR data.search_props.sid::remote_$srv$*_$sid$
     </panel>
   </row>
   
-  <row>
+  <row depends="$search_is_subsearch$">
     <panel>
       <single>
 	<title>Subsearch</title>

@@ -93,6 +93,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
     latest(duration_command_search_index_bucketcache_miss) AS index_cache_miss
     latest(duration_command_search_rawdata) AS rawdata_time
     latest(duration_command_search_index) AS index_time
+    latest(drop_count) AS drop_count
     latest(scan_count) AS scan_count
     latest(event_count) AS event_count
     latest(search_startup_time) AS search_startup_time
@@ -110,6 +111,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",
     scan_count AS "Scanned Events", event_count AS "Matching Events",
+    drop_count AS "Dropped Events (limits exceeded)",
     search_startup_time AS "Startup Time",
     searched_buckets AS "Buckets in Time Range",
     eliminated_buckets AS "Bloom Filter Eliminated Buckets",

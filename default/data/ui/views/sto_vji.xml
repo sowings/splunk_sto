@@ -80,8 +80,9 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 
   <search id="sid_via_audit">
     <query>`get_audit_index` earliest=$search_start_epoch$ TERM(action=search)
-(TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
+(TERM(info=granted) TERM(search_id=*)) OR TERM(info=completed)
 (TERM($sid$) search_id='$sid$') OR (TERM(subsearch_$sid$_*) search_id='subsearch_$sid$_*')
+| eval search_id=trim(search_id, "'")
 | rex "user=(?&lt;user&gt;[^,]+)"
 | stats earliest(user) AS user
     earliest(host) AS host

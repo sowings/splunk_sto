@@ -16,8 +16,8 @@
   </fieldset>
 
   <search id="timed_audit">
-    <query><![CDATA[`get_audit_index` host="$srv$" TERM(action=search) TERM(info=granted) OR TERM(info=completed)
-| fields _time action info user search_id search total_run_time event_count result_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
+    <query><![CDATA[`get_audit_index` host="$srv$" TERM(action=search) TERM(info=granted) OR TERM(info=completed) TERM(search_id=*)
+| fields _time action info user search_id search total_run_time event_count result_count drop_count scan_count searched_buckets eliminated_buckets considered_events total_slices decompressed_slices api_lt api_et search_lt search_et
 | eval search_id=trim(search_id, "'")
 | rex field=search_id "(?<search_family>scheduler|subsearch)_"
 | eval search_family=case(match(search_id, "^\d{10}\.\d+"), "adhoc", match(search_id, "^SummaryDirector"), "summary", match(search_id, "(?<dash_search_name>\w+)_\d{10}\.\d+(?:_[-A-F0-9]+)?$"), "dashboard", 1=1, search_family)
@@ -38,6 +38,7 @@
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",
     scan_count AS "Scanned Events", event_count AS "Matching Events",
+    drop_count AS "Dropped Events",
     search_startup_time AS "Startup Time",
     searched_buckets AS "Buckets in Time Range",
     eliminated_buckets AS "Bloom Filter Eliminated Buckets",
@@ -134,7 +135,7 @@ as adhoc searches and dashboards.
     <panel>
       <table>
 	<title>Scheduled Searches</title>
-	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Show Search"]</fields>
+	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Dropped Events", "Show Search"]</fields>
 	<search base="scheduler_family">
 <!--	  <query>table search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
 	</search>
@@ -175,7 +176,7 @@ those searches to complete.
     <panel>
       <table>
 	<title>Dashboard Searches</title>
-	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Show Search"]</fields>
+	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Dropped Events", "Show Search"]</fields>
         <search base="dashboard_family">
 <!--	  <query>table search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
 	</search>
@@ -214,7 +215,7 @@ they write a bad search, their impact on the system is reduced.
     <panel>
       <table>
 	<title>Ad-Hoc Searches</title>
-	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Show Search"]</fields>
+	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Dropped Events", "Show Search"]</fields>
 	<search base="adhoc_family">
 <!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
 	</search>
@@ -248,7 +249,7 @@ Summary searches
     <panel>
       <table>
 	<title>Summary Searches</title>
-	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Show Search"]</fields>
+	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Dropped Events", "Show Search"]</fields>
 	<search base="summary_family">
 <!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
 	</search>
@@ -291,7 +292,7 @@ the runtime of these should be kept as low as possible.
     <panel>
       <table>
 	<title>Subsearches</title>
-	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Show Search"]</fields>
+	<fields>["Short SID", "User", "Run Time (sec)", "flags", "_time", "search_et", "search_lt", "Search Span", "Buckets in Time Range", "Bloom Filter Eliminated Buckets", "Slices in Matching Buckets", "Slices Decompressed", "Scanned Events", "Matching Events", "Dropped Events", "Show Search"]</fields>
 	<search base="subsearch_family">
 <!--	  <query>table user search_id, total_run_time, flags, _time, search_et search_lt span_pretty searched_buckets eliminated_buckets total_slices decompressed_slices scan_count event_count, search</query> -->
 	</search>

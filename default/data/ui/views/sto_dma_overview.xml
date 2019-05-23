@@ -28,7 +28,7 @@
   <row>
     <panel>
       <table>
-	<title>Accelerated Data Models Found in Scope ($job.resultCount$)</title>
+	<title>Accelerated Data Models Found in Scope ($models$)</title>
 	<option name="drilldown">row</option>
 	<search>
 	  <query>| inputlookup sto_asset_map_datamodel where is_scheduled=1
@@ -36,6 +36,9 @@
 | table splunk_server, title, eai:acl.app eai:acl.owner eai:acl.sharing, cron_schedule
 | rename splunk_server AS "Search Head", title AS "Model Name", eai:acl.app AS App, eai:acl.owner AS "Owner", cron_schedule AS "Search Schedule", eai:acl.sharing AS "Model Visibility"
 </query>
+        <done>
+          <set token="models">$job.resultCount$</set>
+        </done>
         </search>
 	<drilldown>
 f	  <link><![CDATA[sto_dma_detail?form.srv=$row.Search Head$&form.app=$row.App$&form.dm=$row.Model Name$]]></link>
@@ -48,13 +51,16 @@ f	  <link><![CDATA[sto_dma_detail?form.srv=$row.Search Head$&form.app=$row.App$&
   <row>
     <panel>
       <table>
-	<title>Non-Accelerated Data Models Found in Scope ($job.resultCount$)</title>
+	<title>Non-Accelerated Data Models Found in Scope ($models$)</title>
 	<search>
 	  <query>| inputlookup sto_asset_map_datamodel
 | search NOT is_scheduled=1 splunk_server="$srv$" eai:acl.app="$app$"	  
 | table title, eai:acl.app eai:acl.owner eai:acl.sharing
 | rename title AS "Model Name", eai:acl.app AS App, eai:acl.owner AS "Owner", eai:acl.sharing AS "Model Visibility"
 </query>
+        <done>
+          <set token="models">$job.resultCount$</set>
+        </done>
         </search>
       </table>
     </panel>

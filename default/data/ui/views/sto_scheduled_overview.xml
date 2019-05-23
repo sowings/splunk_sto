@@ -15,7 +15,7 @@
     <input type="dropdown" token="app" searchWhenChanged="true">
       <label>Application</label>
       <choice value="*">All Applications</choice>
-      <fieldForValue>eai:acl.app</fieldForValue>
+      <fieldForValue>app_clear</fieldForValue>
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
@@ -32,7 +32,7 @@
 	<option name="drilldown">row</option>
 	<search>
 	  <query>| inputlookup sto_asset_map_savedsearch where is_scheduled=1
-| search splunk_server="$srv$" eai:acl.app="$app$"	  
+| search splunk_server="$srv$" app_clear="$app$"	  
 | table splunk_server, object_title, app_clear eai:acl.owner eai:acl.sharing, cron_schedule
 | rename splunk_server AS "Splunk Host", object_title AS "Search Name", app_clear AS App, eai:acl.owner AS "Owner", cron_schedule AS "Search Schedule", eai:acl.sharing AS "Search Visibility"
 </query>
@@ -51,7 +51,7 @@
 	<title>Named But Not Scheduled Searches Found in Scope ($job.resultCount$)</title>
 	<search>
 	  <query>| inputlookup sto_asset_map_savedsearch where is_scheduled=0
-| search splunk_server="$srv$" eai:acl.app="$app$"	  
+| search splunk_server="$srv$" app_clear="$app$"	  
 | table splunk_server, object_title, app_clear eai:acl.owner eai:acl.sharing
 | rename splunk_server AS "Splunk Host", object_title AS "Search Name", app_clear AS App, eai:acl.owner AS "Owner", eai:acl.sharing AS "Search Visibility"
 </query>

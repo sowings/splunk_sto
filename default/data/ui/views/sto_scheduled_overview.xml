@@ -19,7 +19,7 @@
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
-        <query>| inputlookup sto_asset_map_savedsearch | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+        <query>| inputlookup sto_asset_map_savedsearch | stats count by app_clear | eval label=app_clear . " (" . count . ")"</query>
       </search>
     </input>
 
@@ -33,8 +33,8 @@
 	<search>
 	  <query>| inputlookup sto_asset_map_savedsearch where is_scheduled=1
 | search splunk_server="$srv$" eai:acl.app="$app$"	  
-| table splunk_server, object_title, eai:acl.app eai:acl.owner eai:acl.sharing, cron_schedule
-| rename splunk_server AS "Splunk Host", object_title AS "Search Name", eai:acl.app AS App, eai:acl.owner AS "Owner", cron_schedule AS "Search Schedule", eai:acl.sharing AS "Search Visibility"
+| table splunk_server, object_title, app_clear eai:acl.owner eai:acl.sharing, cron_schedule
+| rename splunk_server AS "Splunk Host", object_title AS "Search Name", app_clear AS App, eai:acl.owner AS "Owner", cron_schedule AS "Search Schedule", eai:acl.sharing AS "Search Visibility"
 </query>
         </search>
 	<drilldown>
@@ -52,8 +52,8 @@
 	<search>
 	  <query>| inputlookup sto_asset_map_savedsearch where is_scheduled=0
 | search splunk_server="$srv$" eai:acl.app="$app$"	  
-| table splunk_server, object_title, eai:acl.app eai:acl.owner eai:acl.sharing
-| rename splunk_server AS "Splunk Host", object_title AS "Search Name", eai:acl.app AS App, eai:acl.owner AS "Owner", eai:acl.sharing AS "Search Visibility"
+| table splunk_server, object_title, app_clear eai:acl.owner eai:acl.sharing
+| rename splunk_server AS "Splunk Host", object_title AS "Search Name", app_clear AS App, eai:acl.owner AS "Owner", eai:acl.sharing AS "Search Visibility"
 </query>
         </search>
       </table>

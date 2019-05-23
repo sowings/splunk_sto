@@ -83,6 +83,7 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
 (TERM(info=granted) TERM(search_id=*)) OR TERM(info=completed)
 (TERM($sid$) search_id='$sid$') OR (TERM(subsearch_$sid$_*) search_id='subsearch_$sid$_*')
 | eval search_id=trim(search_id, "'")
+| eval search=trim(search, "'")
 | rex "user=(?&lt;user&gt;[^,]+)"
 | stats earliest(user) AS user
     earliest(host) AS host

@@ -41,7 +41,7 @@
         </done>
         </search>
 	<drilldown>
-f	  <link><![CDATA[sto_dma_detail?form.srv=$row.Search Head$&form.app=$row.App$&form.dm=$row.Model Name$]]></link>
+	  <link><![CDATA[sto_dma_detail?form.srv=$row.Search Head$&form.app=$row.App$&form.dm=$row.Model Name$]]></link>
 	</drilldown>
       </table>
     </panel>

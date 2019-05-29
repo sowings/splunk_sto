@@ -119,13 +119,19 @@ values(related_indexes) by search_head_guid, splunk_server
 	<search>
 	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler
 savedsearch_name="_ACCELERATE_DM_$app$_$dm$_ACCELERATE_"
-| fields _time host status sid member_label run_time
+| eval splunk_server=host
+| join type=left savedsearch_name splunk_server
+[ | inputlookup sto_asset_map_datamodel
+| eval savedsearch_name="_ACCELERATE_DM_" . 'eai:acl.app' . "_" . title . "_ACCELERATE_"
+| rename title AS model, eai:acl.app AS app
+| table model app savedsearch_name  cron_schedule is_scheduled  splunk_server] 
+| fields _time host status sid member_label run_time app model cron_schedule
 | rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
-| eval app="$app$", model="$dm$"
-| eval high_status=case(status="delegated_remote", "delegated to peer " . member_label, status="delegated_remote_completion", "remote peer " . member_label . " finished", 1=1, status)
-| eval runtime_pp=if(isnotnull(run_time), "Ran for " . run_time . " (sec)", null())
-| eval Detail=coalesce(runtime_pp, reason)
 | eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| `sto_cron_decoder`
+| eval high_status=case(status="delegated_remote", "delegated to peer " . member_label, status="delegated_remote_completion", "remote peer " . member_label . " finished", 1=1, status)
+| eval runtime_pp=case(isnull(run_time), null(), isnull(cron_minimum_freq), "Ran for " . run_time . " (sec)", run_time > cron_minimum_freq, "Ran for " . run_time . " (sec), over expected interval of " . cron_minimum_freq . " (sec)", 1=1, "Ran for " . run_time . " (sec)")
+| eval Detail=coalesce(runtime_pp, reason)
 | table _time host app, model, high_status, Detail, sid, ssid
 | rename host AS Host, app AS Application, model AS "Data Model", high_status AS Status, ssid AS "Short SID (for inspection)"
 	  </query>

@@ -64,6 +64,7 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
     <panel>
       <table>
 	<title>Searches Requiring Cache Fetch</title>
+	<fields>["Short SID", "Host", "User", "Run Time (sec)", "Search Span", "Index Cache Misses", "Rawdata Cache Misses"]</fields>
 	<search>
 	  <query><![CDATA[index=_audit TERM(action=search)
 (TERM(info=granted) OR TERM(info=completed)) TERM(search_id=*)
@@ -83,14 +84,6 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
     latest(invocations_command_search_index_bucketcache_miss) AS index_cache_miss_count
     latest(invocations_command_search_rawdata) AS rawdata_count
     latest(invocations_command_search_index) AS index_count
-    latest(scan_count) AS scan_count
-    latest(event_count) AS event_count
-    latest(search_startup_time) AS search_startup_time
-    latest(searched_buckets) AS searched_buckets
-    latest(eliminated_buckets) AS eliminated_buckets
-    latest(considered_events) AS considered_events
-    latest(total_slices) AS total_slices
-    latest(decompressed_slices) AS decompressed_slices
     latest(api_et) AS api_et
     latest(api_lt) AS api_lt
     by search_id
@@ -99,8 +92,19 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
 | fillnull value=0 rawdata_cache_hit_count rawdata_cache_miss_count index_cache_hit_count index_cache_miss_count
 | eval rawdata_ratio=round(rawdata_cache_hit_count * 100 / (rawdata_cache_hit_count + rawdata_cache_miss_count), 2), index_ratio=round(index_cache_hit_count * 100 / (index_cache_hit_count + index_cache_miss), 2)
 | where isnotnull(rawdata_ratio) OR isnotnull(index_ratio)
+| eval ssid=replace(search_id, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| rename host AS Host,
+    user AS User,
+    total_run_time AS "Run Time (sec)",
+    span_pretty AS "Search Span",
+    index_cache_miss_count AS "Index Cache Misses",
+    rawdata_cache_miss_count AS "Rawdata Cache Misses",
+    ssid AS "Short SID"
 ]]></query>
 	</search>
+	<drilldown>
+	  <link><![CDATA[sto_vji?form.sid=$row.search_id$&form.srv=$row.Host$]]></link>
+        </drilldown>
       </table>
     </panel>
   </row>

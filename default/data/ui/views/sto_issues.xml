@@ -70,6 +70,33 @@ component=DispatchManager enforceQuotas
     <panel>
       <table>
 	<title>Saved Searches Running Over Period</title>
+	<option name="drilldown">row</option>
+	<fields>["_time","Host","Status","Detail","Short SID (for inspection)"]</fields>
+	<!-- Part of the rationale of this search is that the fastest we can
+             run a scheduled search is every minute; we start with this as a
+             base list before we go comparing against the actual period of
+             the search. -->
+	<search>
+	  <query>index=_internal sourcetype=scheduler source=*/scheduler.log*  component=SavedSplunker log_level=INFO TERM(status=success) run_time>60
+| eval splunk_server=host
+| join type=left savedsearch_name splunk_server
+[ | inputlookup sto_asset_map_savedsearch
+| rename object_title AS savedsearch_name
+| table savedsearch_name cron_schedule is_scheduled splunk_server] 
+| fields _time host status sid member_label run_time cron_schedule
+| rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
+| eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| `sto_cron_decoder`
+| eval high_status=case(status="delegated_remote", "delegated to peer " . member_label, status="delegated_remote_completion", "remote peer " . member_label . " finished", 1=1, status)
+| where run_time > cron_minimum_freq
+| eval runtime_pp=case(isnull(run_time), null(), isnull(cron_minimum_freq), "Ran for " . run_time . " (sec)", run_time > cron_minimum_freq, "Ran for " . run_time . " (sec), over expected interval of " . cron_minimum_freq . " (sec)", 1=1, "Ran for " . run_time . " (sec)")
+| eval Detail=coalesce(runtime_pp, reason)
+| table _time host, high_status, Detail, sid, ssid
+| rename host AS Host, high_status AS Status, ssid AS "Short SID (for inspection)"</query>
+	</search>
+	<drilldown>
+	  <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.Host$]]></link>
+        </drilldown>
       </table>
     </panel>
   </row>

@@ -15,11 +15,11 @@
     <input type="dropdown" token="app" searchWhenChanged="true">
       <label>Application</label>
       <choice value="*">All Applications</choice>
-      <fieldForValue>eai:acl.app</fieldForValue>
+      <fieldForValue>app_clear</fieldForValue>
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
-        <query>| inputlookup sto_asset_map_savedsearch | where splunk_server="$srv$" | stats count by eai:acl.app | eval label='eai:acl.app' . " (" . count . ")"</query>
+        <query>| inputlookup sto_asset_map_savedsearch | where splunk_server="$srv$" | stats count by app_clear | eval label=app_clear . " (" . count . ")"</query>
       </search>
     </input>
 
@@ -28,7 +28,7 @@
       <fieldForValue>object_title</fieldForValue>
       <fieldForLabel>label</fieldForLabel>
       <search>
-	<query>| inputlookup sto_asset_map_savedsearch where splunk_server="$srv$" AND eai:acl.app="$app$"</query>
+	<query>| inputlookup sto_asset_map_savedsearch where splunk_server="$srv$" AND app_clear="$app$"</query>
       </search>
     </input>
 
@@ -44,7 +44,7 @@
 	<title>Search Details</title>
 	<search>
 	  <query>| inputlookup sto_asset_map_savedsearch
-| search splunk_server="$srv$" eai:acl.app="$app$" object_title="$st$"</query>
+| search splunk_server="$srv$" app_clear="$app$" object_title="$st$"</query>
 	</search>
       </table>
     </panel>
@@ -137,7 +137,7 @@ host="$ssd_scheduler_delegated_host$*" earliest="$ssd_scheduler_delegated_time$"
   [ | makeresults | eval latest_time=relative_time(now(), "$window$") | return latest_time ]
 | search title="$st$"
 | mvexpand scheduled_times 
-| rename scheduled_times as _time eai:acl.app as app eai:acl.owner as user title as search   
+| rename scheduled_times as _time app_clear as app eai:acl.owner as user title as search   
 </query> 
 	</search>
       </table>

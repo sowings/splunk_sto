@@ -48,6 +48,20 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
     <panel>
       <table>
 	<title>Users Encountering Queued Searches</title>
+	<search>
+	  <query>index=_internal sourcetype=splunkd source=*splunkd.log*
+component=DispatchManager enforceQuotas 
+| stats max(_time) AS most_recent, count by username host reason
+| sort 0 - most_recent
+| convert ctime(most_recent)
+| table most_recent count host username reason
+| rename most_recent AS "Most Recent Warning",
+    count AS Occurrences,
+    host AS Host,
+    username AS User,
+    reason AS Reason
+	  </query>
+	</search>
       </table>
     </panel>
   </row>

@@ -1,0 +1,112 @@
+<form>
+  <label>Sizing Calculator Searches</label>
+  <fieldset>
+    <input type="time" />
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Indexing Workload Per Day</title>
+	<search>
+	  <query>index="_internal" source="*/metrics.log" component=Metrics TERM(group=per_index_thruput)
+| eval gb=kb/1024/1024 | stats sum(gb) as "Volume Per Day"</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+  
+
+  <row>
+    <panel>
+      <table>
+   <search id="searches_by_category">
+    <query>
+index=_audit host=* TERM(action=search) sourcetype=audittrail NOT TERM(search_id='rsa_*') TERM(search_id=*) TERM(info=granted)
+| eval search_id=trim(search_id, "'")
+| eval search_type = case( match(search_id, "^SummaryDirector_"), "summarization", match(savedsearch_name, "^_ACCELERATE_DM_"), "summarization", match(search_id, "_at_\d+_\d+"), "scheduled", match(search_id, "\d{10}\.\d+(_[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})?$"), "ad hoc", true(), "other") 
+| stats count by search_type
+    </query>
+   </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Total Search Count Per Day</title>
+	<search base="searches_by_category">
+	  <query>stats sum(count) AS total_search_count</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Average Search Concurrency</title>
+	<search>
+	  <query>index="_audit" TERM(action=search) TERM(info=completed) TERM(search_id=*)
+| stats avg(total_run_time) AS avg_runtime, dc(search_id) AS search_count
+| eval total_time = search_count * avg_runtime
+| eval concurrency = total_time / 86400
+| chart avg(concurrency) as "Average Search Concurrency"</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+
+  <row>
+    <panel>
+      <table>
+	<title>Scheduled Data Model / Report Acceleration Searches</title>
+	<search base="searches_by_category">
+	  <query>search search_type="scheduled" OR search_type="summarization"
+| stats sum(count) AS scheduled_searches</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Adhoc Search Count </title>
+	<search base="searches_by_category">
+	  <query>search search_type="ad hoc" | rename count AS ad_hoc</query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Historical Search Count</title>
+	<search>
+	  <query>
+index=_audit host=* TERM(action=search) sourcetype=audittrail NOT TERM(search_id='rsa_*') TERM(search_id=*) TERM(info=completed) OR TERM(info=granted)
+| eval user = if(user="n/a", null(), user)
+| eval search_type = case( match(search_id, "^SummaryDirector_"), "summarization", match(search_id, "^((rt_)?scheduler_|alertsmanager_)"), "scheduled", match(search_id, "\d{10}\.\d+(_[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})?$"), "ad hoc", true(), "other") | eval search=if(isnull(savedsearch_name) OR savedsearch_name=="", search, savedsearch_name)
+| stats min(_time) as _time, values(user) as user, max(total_run_time) as total_run_time, first(scan_count) as scan_count, first(event_count) as event_count, first(result_count) as result_count, first(search) as search, first(search_type) as search_type, first(apiStartTime) as apiStartTime, first(apiEndTime) as apiEndTime , first(api_et) as api_et, first(api_lt) as api_lt by search_id
+| where isnotnull(search) | eval tr = api_lt - api_et | search scan_count!=0 | search event_count!=0 | search tr>86400 | stats count as historical_search	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title> </title>
+	<search>
+	  <query>
+	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+</form>

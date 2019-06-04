@@ -1,0 +1,196 @@
+<form>
+  <label>Search Host Performance Overview</label>
+  <fieldset>
+    <input type="text" token="remote_sid">
+      <label>(Remote) Search ID</label>
+    </input>
+  </fieldset>
+
+  <search id="sid_decoder">
+    <query><![CDATA[| makeresults | eval remote_sid="$remote_sid$"
+| rename comment AS "Straight up adhoc searches"
+| rex field=remote_sid "^(?<search_type>remote)_(?<source_search_head>[-\.A-Za-z0-9]+)_(?<sid>.*)$"
+| rex field=sid "^(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
+| rex field=sid "^SummaryDirector_(?<summary_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
+| rex field=sid "^RemoteStorageRetrieveBuckets_(?<s2_epoch>\d+)\.(?<sid_seqno>\d+)$"
+| rex field=sid "^md_(?<metadata_epoch>\d+)\.(?<sid_seqno>\d+)$"
+| rex field=sid "^(?<sid_user>\w+)__?(?<sid_owner>\w+)_(?<sid_app>[^_]+)__?(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
+| rex field=sid "^(?:(?<rt_marker>rt_)|(?<replica_marker>rsa_))?(?<sid_user>\w+)_?(?<sid_owner>\w+)__?(?<sid_app>[^_]+_)_?(?<sid_search_name>[^_]+)_at_(?<scheduler_epoch>\d+)_(?<sid_seqno>\d+)(?:_(?<shc_member>[-\w]+))?$"
+| rex field=sid "^subsearch_(?<parent_sid>(?<adhoc_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$"
+| rex field=sid "^subsearch_(?<parent_sid>(?<sid_user>\w+?)__?(?<sid_owner>\w+?)_(?<sid_app>[^_]+?)__(?<sid_search_name>[^_]+)_(?<dash_epoch>\d+)\.(?<sid_seqno>\d+))(?:_(?<shc_member>[-\w]+))?_(?<sub_epoch>\d+)\.(?<sub_seqno>\d+)$$"
+| eval search_type=mvappend(search_type,case(isnotnull(adhoc_epoch), "adhoc", isnotnull(summary_epoch), "acceleration", isnotnull(metadata_epoch), "metadata", isnotnull(s2_epoch), "S2", isnotnull(dash_epoch), "dashboard", isnotnull(scheduler_epoch), "scheduled"))
+| eval search_type=mvappend(search_type, case(isnotnull(rt_marker), "real-time", isnotnull(replica_marker), "replicated", isnotnull(subsearch_marker), "subsearch", 1=1, null()))
+| eval start_epoch=coalesce(adhoc_epoch, dash_epoch, metadata_epoch, s2_epoch, scheduler_epoch, summary_epoch, sub_epoch)
+| eval sid_pieces=split(sid, "_")
+| eval sid_pieces=split(sid, "_")
+| eval subsearch_marker=if(mvindex(sid_pieces, 0) == "subsearch", "true", null())
+| eval parent_sid=if(subsearch_marker=="true", replace(replace(sid, "subsearch_+(.*)", "\1"), "^(.*)_\d+\.\d+$", "\1"), sid)
+| fields - adhoc_epoch metadata_epoch replica_marker rt_marker s2_epoch dash_epoch scheduler_epoch summary_epoch sid_owner sub_* 
+| table sid search_type start_epoch shc_member object_title sid_* subsearch_marker parent_sid source*]]>
+    </query>
+    <done>
+      <set token="search_start_epoch">$result.start_epoch$</set>
+      <set token="search_parent_sid">$result.parent_sid$</set>
+      <set token="search_parent_srv">$result.source_search_head$</set>
+    </done>
+  </search>
+
+  <search id="sid_via_audit">
+    <query>`get_audit_index` earliest=$search_start_epoch$ TERM(action=search)
+TERM(info=completed)
+TERM($search_parent_sid$) search_id='$search_parent_sid$'
+host=$search_parent_srv$
+| stats 
+    latest(eval(if(info="completed", _time, null()))) AS completed_time
+| eval completed_time = completed_time + 1</query>
+    <done>
+      <eval token="audit_latest_time">if(isnotnull($result.completed_time$), $result.completed_time$, now())</eval>
+    </done>
+  </search>
+
+  <!-- DEBUG -->
+<!--
+<row><panel><table><title>DEBUGGING INFO</title><search base="sid_decoder"/></table></panel></row>
+<row><panel><table><title>DEBUG AUDIT</title><search base="sid_via_audit"/></table></panel></row>
+-->
+  <!-- END DEBUG -->
+
+  
+
+  <row>
+    <panel>
+      <table>
+	<title>Starting Out</title>
+	<search>
+	  <query><![CDATA[
+index=_internal sourcetype=splunkd_remote_searches source=*remote_searches.log*
+earliest=$search_start_epoch$ latest=$audit_latest_time$ $remote_sid$
+streamed search 
+| rex "sid=(?<sid>[^,]+),"
+| search search_id="$remote_sid$" OR sid="$remote_sid$"
+| rex "\d{2}:\d{2}:\d{2}\.\d{3}\s?[-+]\d{4}\s(?<log_level>\w+)"
+| rex "StreamedSearch - Streamed search connection (?<term_state>\w+):"
+| rex "StreamedSearch - Streamed search search (?<start_state>\w+)"
+| rex "description=\"(?<description>[^\"]+)\""
+| rex "search_rawdata_bucketcache_miss=(?<raw_miss>\d+)"
+| rex "search_index_bucketcache_miss=(?<tsidx_miss>\d+)"
+| eval state=coalesce(term_state, start_state, description, null()), search_id=coalesce(search_id, sid, null())
+| rex "elapsedTime=(?<elapsedTime>[\d\.]+)"
+| rex "savedsearch_name=\"(?<savedsearch_name>.*?)\""
+| rex "drop_count=(?<drop_count>\d+)"
+| rex "scan_count=(?<scan_count>\d+)"
+| rex "eliminated_buckets=(?<eliminated_buckets>\d+)"
+| rex "considered_events=(?<considered_events>\d+)"
+| rex "decompressed_slices=(?<decompressed_slices>\d+)"
+| rex "events_count=(?<events_count>\d+)"
+| rex "active_searches=(?<active_searches>\d+)"
+| rex "total_slices=(?<total_slices>\d+)"
+| rex "considered_buckets=(?<considered_buckets>\d+)"
+| rex "search_rawdata_bucketcache_error=(?<search_rawdata_bucketcache_error>\d+)"
+| rex "search_rawdata_bucketcache_miss=(?<search_rawdata_bucketcache_miss>\d+)"
+| rex "search_index_bucketcache_error=(?<search_index_bucketcache_error>\d+)"
+| rex "search_index_bucketcache_hit=(?<search_index_bucketcache_hit>\d+)"
+| rex "search_index_bucketcache_miss=(?<search_index_bucketcache_miss>\d+)"
+| rex "search_rawdata_bucketcache_hit=(?<search_rawdata_bucketcache_hit>\d+)"
+| rex "search_rawdata_bucketcache_miss_wait=(?<rawdata_miss_wait>\d+)"
+| rex "search_index_bucketcache_miss_wait=(?<index_miss_wait>\d+)"
+| rex "apiStartTime='(?<apiStartTime>[^']*?)'"
+| rex "apiEndTime='(?<apiEndTime>[^']*?)'"
+| eval api_et=strptime(apiStartTime, "%a %b %d %H:%M:%S %Y")
+| eval api_lt=strptime(apiEndTime, "%a %b %d %H:%M:%S %Y")
+| stats 
+    earliest(savedsearch_name) AS savedsearch_name
+    latest(eval(if(isnotnull(term_state), _time, null()))) AS completed_time
+    latest(elapsedTime) AS total_run_time
+    latest(search_rawdata_bucketcache_miss) AS rawdata_cache_miss
+    latest(search_index_bucketcache_miss) AS index_cache_miss
+    latest(rawdata_miss_wait) AS rawdata_cache_miss_time
+    latest(index_miss_wait) AS index_cache_miss_time
+    latest(drop_count) AS drop_count
+    latest(scan_count) AS scan_count
+    latest(events_count) AS event_count
+    latest(active_searches) AS active_searches
+    latest(considered_buckets) AS searched_buckets
+    latest(eliminated_buckets) AS eliminated_buckets
+    latest(considered_events) AS considered_events
+    latest(total_slices) AS total_slices
+    latest(decompressed_slices) AS decompressed_slices
+    latest(api_et) AS api_et
+    latest(api_lt) AS api_lt
+    by host
+| sort 0 - total_run_time
+| rename host AS Host]]></query>
+	  <done>
+	    <set token="remote_searches_sid">$job.sid$</set>
+	  </done>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+
+  <search id="sid_via_introspection">
+    <query>`get_introspection_index` earliest=$search_start_epoch$ latest=$audit_latest_time$ sourcetype=splunk_resource_usage 
+component::PerProcess data.search_props.role::peer
+data.search_props.sid::$remote_sid$
+| sistats max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used) by _time, host
+</query>
+    <done>
+      <set token="introspection_available">$job.sid$</set>
+    </done>
+  </search>
+
+  <row>
+    <panel>
+      <input type="dropdown" token="intro_choice" searchWhenChanged="true">
+	<label>Performance Metric</label>
+	<choice value="max(data.mem_used)">Memory Used</choice>
+	<choice value="max(data.normalized_pct_cpu)">Normalized CPU</choice>
+	<choice value="max(data.pct_cpu)">CPU Usage</choice>
+	<choice value="max(data.read_mb)">Data Read (MB)</choice>
+	<choice value="max(data.fd_used)">Files Used</choice>
+	<default>max(data.mem_used)</default>
+      </input>
+      <chart>
+	<title>Resource Usage by Host</title>
+	<option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.text">Time</option>
+	<option name="charting.chart.nullValueMode">connect</option>
+	<search base="sid_via_introspection">
+	  <query>timechart $intro_choice$ by host limit=100 useother=f usenull=f</query>
+	</search>
+	
+      </chart>
+    </panel>
+    
+  </row>
+
+  <row>
+    <panel>
+      <table>
+	<title>Bucket Cache Activity During This Search</title>
+	<search>
+	  <query><![CDATA[index=_internal component=CacheManager sourcetype=splunkd source=*splunkd.log*
+earliest=$search_start_epoch$ latest=$audit_latest_time$
+[ | loadjob $remote_searches_sid$
+| where rawdata_cache_miss > 0 OR index_cache_miss > 0
+| fields Host
+| rename Host AS host ]
+| rex "cache(I|_i)d=\"?(?<cid_type>\w+)\|(?<cid_index>[^~]+?)~(?<cid_bid>\d+)~(?<cid_guid>[-A-Z0-9]+)\|(?<cid_extra>.*?)\"?"
+| rex "(?<action>Evicted)\scach"
+| rex "action=(?<action>\w+),"
+| eval action=case(match(_raw, "Cache miss"), "cache_miss", match(_raw, "will remove cache.*"), "freeze", 1=1, lower(action))
+| fields - linecount source sourcetype component event_message log_level splunk_server
+| eval full_bid=cid_index . "~" . cid_bid . "~" . cid_guid
+| where isnotnull(action)
+| table _time host action cid_index cid_type full_bid
+| rename host AS Host
+    action AS Action
+    cid_index AS Index
+    cid_type AS "Artifact Type",
+    full_bid AS "Bucket ID"]]></query>
+	</search>
+      </table>
+    </panel>
+  </row>
+</form>

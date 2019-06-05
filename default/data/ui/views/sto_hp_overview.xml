@@ -92,8 +92,8 @@ streamed search
 | rex "search_index_bucketcache_hit=(?<search_index_bucketcache_hit>\d+)"
 | rex "search_index_bucketcache_miss=(?<search_index_bucketcache_miss>\d+)"
 | rex "search_rawdata_bucketcache_hit=(?<search_rawdata_bucketcache_hit>\d+)"
-| rex "search_rawdata_bucketcache_miss_wait=(?<rawdata_miss_wait>\d+)"
-| rex "search_index_bucketcache_miss_wait=(?<index_miss_wait>\d+)"
+| rex "search_rawdata_bucketcache_miss_wait=(?<rawdata_miss_wait>[\.\d]+)"
+| rex "search_index_bucketcache_miss_wait=(?<index_miss_wait>[\.\d]+)"
 | rex "apiStartTime='(?<apiStartTime>[^']*?)'"
 | rex "apiEndTime='(?<apiEndTime>[^']*?)'"
 | eval api_et=strptime(apiStartTime, "%a %b %d %H:%M:%S %Y")
@@ -135,8 +135,8 @@ streamed search
     total_slices AS "Slices in Matching Buckets",
     index_cache_miss AS "TSIDX (Index or DMA) Buckets Not In Cache",
     rawdata_cache_miss AS "Rawdata Buckets Not In Cache",
-    index_cache_miss_time AS "Time Fetching TSIDX (ms)",
-    rawdata_cache_miss_time AS "Time Fetching Rawdata (ms)",
+    index_cache_miss_time AS "Time Fetching TSIDX (sec)",
+    rawdata_cache_miss_time AS "Time Fetching Rawdata (sec)",
     span AS "Search Span (sec)",
     span_pretty AS "Search Span",
     decompressed_slices AS "Slices Decompressed"]]></query>

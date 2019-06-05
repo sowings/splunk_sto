@@ -133,7 +133,7 @@ streamed search
     eliminated_buckets AS "Bloom Filter Eliminated Buckets",
     considered_events AS "Events in Matching Buckets",
     total_slices AS "Slices in Matching Buckets",
-    rawdata_cache_miss AS "TSIDX (Index or DMA) Buckets Not In Cache",
+    index_cache_miss AS "TSIDX (Index or DMA) Buckets Not In Cache",
     rawdata_cache_miss AS "Rawdata Buckets Not In Cache",
     index_cache_miss_time AS "Time Fetching TSIDX (ms)",
     rawdata_cache_miss_time AS "Time Fetching Rawdata (ms)",

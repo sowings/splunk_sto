@@ -109,7 +109,8 @@ streamed search
     latest(drop_count) AS drop_count
     latest(scan_count) AS scan_count
     latest(events_count) AS event_count
-    latest(active_searches) AS active_searches
+    earliest(active_searches) AS active_start
+    latest(active_searches) AS active_end
     latest(considered_buckets) AS searched_buckets
     latest(eliminated_buckets) AS eliminated_buckets
     latest(considered_events) AS considered_events
@@ -119,7 +120,26 @@ streamed search
     latest(api_lt) AS api_lt
     by host
 | sort 0 - total_run_time
-| rename host AS Host]]></query>
+| rename host AS Host
+    savedsearch_name AS "Saved Search (if any)",
+    search_string AS "Search String", total_run_time AS "Run Time (sec)",
+    scan_count AS "Scanned Events", event_count AS "Matching Events",
+    drop_count AS "Dropped Events (limits exceeded)",
+    completed_time AS "Host Finished",
+    active_start AS "Active Searches at Start",
+    active_end AS "Active Searches at Completion",
+    search_startup_time AS "Startup Time",
+    searched_buckets AS "Buckets in Time Range",
+    eliminated_buckets AS "Bloom Filter Eliminated Buckets",
+    considered_events AS "Events in Matching Buckets",
+    total_slices AS "Slices in Matching Buckets",
+    rawdata_cache_miss AS "TSIDX (Index or DMA) Buckets Not In Cache",
+    rawdata_cache_miss AS "Rawdata Buckets Not In Cache",
+    index_cache_miss_time AS "Time Fetching TSIDX (ms)",
+    rawdata_cache_miss_time AS "Time Fetching Rawdata (ms)",
+    span AS "Search Span (sec)",
+    span_pretty AS "Search Span",
+    decompressed_slices AS "Slices Decompressed"]]></query>
 	  <done>
 	    <set token="remote_searches_sid">$job.sid$</set>
 	  </done>

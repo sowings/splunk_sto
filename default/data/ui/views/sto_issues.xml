@@ -30,8 +30,11 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
 | rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
 | eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
 | `sto_cron_decoder`
+| rename comment AS "Nearly all models accelerate every 5 minutes"
+| fillnull value=300 cron_minimum_freq
 | eval high_status=case(status="delegated_remote", "delegated to peer " . member_label, status="delegated_remote_completion", "remote peer " . member_label . " finished", 1=1, status)
 | where run_time > cron_minimum_freq
+| sort 0 - run_time
 | eval runtime_pp=case(isnull(run_time), null(), isnull(cron_minimum_freq), "Ran for " . run_time . " (sec)", run_time > cron_minimum_freq, "Ran for " . run_time . " (sec), over expected interval of " . cron_minimum_freq . " (sec)", 1=1, "Ran for " . run_time . " (sec)")
 | eval Detail=coalesce(runtime_pp, reason)
 | table _time host app, model, high_status, Detail, sid, ssid
@@ -134,6 +137,7 @@ component=DispatchManager enforceQuotas
 | eval rawdata_ratio=round(rawdata_cache_hit_count * 100 / (rawdata_cache_hit_count + rawdata_cache_miss_count), 2), index_ratio=round(index_cache_hit_count * 100 / (index_cache_hit_count + index_cache_miss), 2)
 | where isnotnull(rawdata_ratio) OR isnotnull(index_ratio)
 | eval ssid=replace(search_id, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| sort 0 - total_run_time
 | rename host AS Host,
     user AS User,
     total_run_time AS "Run Time (sec)",

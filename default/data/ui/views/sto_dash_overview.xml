@@ -48,7 +48,7 @@
 
   <row depends="$sdo_dash_clicked$">
     <panel>
-      <input type="time" token="sto_visit_timer">
+      <input type="time" token="sdo_visit_timer">
 	<label>Time Range</label>
 	<default>Last 30 days</default>
       </input>
@@ -63,12 +63,12 @@
 	<option name="charting.axisY2.minimumNumber">0</option>
 	<option name="charting.axisY2.scale">linear</option>
 	<search id="sdo_dash_hits">
-	  <query><![CDATA[index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app=$app|s$ view=$sdo_dash_title|s$
+	  <query><![CDATA[index=_internal sourcetype=splunk_web_access source=*web_access.log* GET app="$app$" view="$sdo_dash_title$"
 | rex "(?<response_ms>\d+)ms$"
 | timechart count AS Hits, avg(response_ms) AS "Average Response (ms)"]]>
           </query>
-	  <earliest>$sto_visit_timer.earliest_time$</earliest>
-	  <latest>$sto_visit_timer.latest_time$</latest>
+	  <earliest>$sdo_visit_timer.earliest$</earliest>
+	  <latest>$sdo_visit_timer.latest$</latest>
 	</search>
       </chart>
     </panel>
@@ -79,7 +79,7 @@
       <table>
 	<title>Dashboard Search Details</title>
 	<search>
-	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:appName="$app$" AND title="$sdo_dash_title$"
+	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:acl.app="$app$" AND title="$sdo_dash_title$"
 | rename comment AS "This is to deal with clones"
 | search eai:acl.owner="$sdo_dash_owner$"
 | table label title search_num input_flag base_name main_search

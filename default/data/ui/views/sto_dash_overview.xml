@@ -19,7 +19,7 @@
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
-        <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" | stats count by eai:appName | eval label='eai:appName' . " (" . count . ")"</query>
+        <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" | stats dc(title) AS count by eai:appName | eval label='eai:appName' . " (" . count . ")"</query>
       </search>
     </input>
   </fieldset>
@@ -35,6 +35,7 @@
 | eval header=label . " (" . count . ")"
 | table header, title, eai:acl.app eai:acl.owner, eai:acl.sharing, count, recent, last_hit
 | convert ctime(last_hit)
+| sort 0 - recent_visits
 | rename header AS "Dash Title (Searches)", title AS "Filename", eai:acl.owner AS "Owner", eai:acl.app AS "App Name", eai:acl.sharing AS "Permissions", count AS "Searches", recent AS "Recent Visits", last_hit AS "Last Visit Time"</query>
 	</search>
 	<drilldown>

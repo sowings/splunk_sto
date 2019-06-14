@@ -104,12 +104,12 @@ Audit:[timestamp=05-28-2018 15:15:52.847, user=admin, action=search, info=grante
     latest(considered_events) AS considered_events
     latest(total_slices) AS total_slices
     latest(decompressed_slices) AS decompressed_slices
-    latest(api_et) AS api_et
-    latest(api_lt) AS api_lt
+    latest(search_et) AS search_et
+    latest(search_lt) AS search_lt
     by search_id
-| eval completed_time = completed_time + 1, span=round(api_lt - api_et, 0)
+| eval completed_time = completed_time + 1, span=round(search_lt - search_et, 0)
 | eval span_pretty=tostring(round(span, 0), "duration")
-| fields - api_et api_lt
+| fields - search_et search_lt
 | rename user AS User, savedsearch_name AS "Saved Search",
     search_string AS "Search String", total_run_time AS "Run Time (sec)",
     scan_count AS "Scanned Events", event_count AS "Matching Events",

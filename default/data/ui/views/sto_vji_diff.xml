@@ -34,8 +34,8 @@
   </search>
 
   <search id="sid_via_audit">
-    <query>`get_audit_index` TERM(action=search)
-(TERM(info=granted) NOT CASE(REST)) OR TERM(info=completed)
+    <query>index=_audit TERM(action=search)
+(TERM(info=granted) OR TERM(info=completed)) TERM(search_id=*)
 TERM($sid$) OR TERM($second_sid$)
 search_id='$sid$' OR search_id='$second_sid$'
 | stats
@@ -100,7 +100,7 @@ search_id='$sid$' OR search_id='$second_sid$'
   </search>
 
   <search id="sid_via_introspection">
-    <query>`get_introspection_index` sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
+    <query>index=_introspection sourcetype=splunk_resource_usage data.search_props.role::head component::PerProcess
 (data.search_props.sid::$sid$ OR data.search_props.sid::$second_sid$)
 | sitimechart max(data.mem_used) max(data.normalized_pct_cpu) max(data.pct_cpu) max(data.read_mb) max(data.fd_used) by data.search_props.sid
 </query>
@@ -314,7 +314,7 @@ search_id=remote*$sid$ OR search_id=remote*$second_sid$
 	<option name="charting.axisTitleX.text">Time</option>
 	<option name="charting.chart.nullValueMode">connect</option>
         <search id="sid_via_introspection_idx">
-          <query>`get_introspection_index` sourcetype=splunk_resource_usage data.search_props.role::peer component::PerProcess
+          <query>index=_introspection sourcetype=splunk_resource_usage data.search_props.role::peer component::PerProcess
 (data.search_props.sid::remote_$first_host$_$sid$ OR data.search_props.sid::remote_$second_host$_$second_sid$)
 | eval comparator=if('data.search_props.sid' == "remote_$first_host$_$sid$", "First", "Second")
 | eval key=comparator . " - " . host

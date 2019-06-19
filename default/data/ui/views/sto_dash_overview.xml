@@ -9,17 +9,17 @@
       <fieldForLabel>label</fieldForLabel>
       <default>All Hosts</default>
       <search>
-	<query>| inputlookup sto_asset_map_dashboards | stats count by splunk_server | eval label=splunk_server . " (" . count . ")"</query>
+	<query>| inputlookup sto_asset_map_dashboard | stats count by splunk_server | eval label=splunk_server . " (" . count . ")"</query>
       </search>
     </input>
     <input type="dropdown" token="app" searchWhenChanged="true">
       <label>Application</label>
       <choice value="*">All Applications</choice>
-      <fieldForValue>eai:appName</fieldForValue>
+      <fieldForValue>app_clear</fieldForValue>
       <fieldForLabel>label</fieldForLabel>
       <default>*</default>
       <search>
-        <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" | stats dc(title) AS count by eai:appName | eval label='eai:appName' . " (" . count . ")"</query>
+        <query>| inputlookup sto_asset_map_dashboard where splunk_server="$srv$" | stats dc(title) AS count by app_clear | eval label=app_clear . " (" . count . ")"</query>
       </search>
     </input>
   </fieldset>
@@ -29,14 +29,14 @@
       <table>
 	<title>This is for the list of dashboards</title>
 	<search>
-	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:appName="$app$"
-| lookup sto_dashboard_usage app AS eai:acl.app, view AS title OUTPUT count AS recent, last_hit
-| stats max(last_hit) AS last_hit, sum(recent) AS recent, count by eai:acl.app, eai:acl.sharing, eai:acl.owner, label, title
+	  <query>| inputlookup sto_asset_map_dashboard where splunk_server="$srv$" AND app_clear="$app$"
+| lookup sto_dashboard_usage app AS app_clear, view AS title OUTPUT count AS recent, last_hit
+| stats max(last_hit) AS last_hit, sum(recent) AS recent, count by app_clear, eai:acl.sharing, eai:acl.owner, label, title
 | eval header=label . " (" . count . ")"
-| table header, title, eai:acl.app eai:acl.owner, eai:acl.sharing, count, recent, last_hit
+| table header, title, app_clear eai:acl.owner, eai:acl.sharing, count, recent, last_hit
 | convert ctime(last_hit)
 | sort 0 - recent_visits
-| rename header AS "Dash Title (Searches)", title AS "Filename", eai:acl.owner AS "Owner", eai:acl.app AS "App Name", eai:acl.sharing AS "Permissions", count AS "Searches", recent AS "Recent Visits", last_hit AS "Last Visit Time"</query>
+| rename header AS "Dash Title (Searches)", title AS "Filename", eai:acl.owner AS "Owner", app_clear AS "App Name", eai:acl.sharing AS "Permissions", count AS "Searches", recent AS "Recent Visits", last_hit AS "Last Visit Time"</query>
 	</search>
 	<drilldown>
 	  <set token="sdo_dash_clicked">yes</set>
@@ -80,7 +80,7 @@
       <table>
 	<title>Dashboard Search Details</title>
 	<search>
-	  <query>| inputlookup sto_asset_map_dashboards where splunk_server="$srv$" AND eai:acl.app="$app$" AND title="$sdo_dash_title$"
+	  <query>| inputlookup sto_asset_map_dashboard where splunk_server="$srv$" AND app_clear="$app$" AND title="$sdo_dash_title$"
 | rename comment AS "This is to deal with clones"
 | search eai:acl.owner="$sdo_dash_owner$"
 | table label title search_num input_flag base_name main_search

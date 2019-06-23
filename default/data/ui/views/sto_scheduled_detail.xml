@@ -53,12 +53,25 @@
   <row>
     <panel>
       <table>
-	<title>Recent Runs</title>
-	<fields>["_time","host","user","app","priority","status","scheduled_time","window_time"]</fields>
+	<title>Recent Runs - ($st$)</title>
+	<fields>["_time","Host","User","Application","priority","Status","scheduled_time","window_time","Short SID (for inspection)"]</fields>
 	<search id="ssd_scheduler_recent">
 	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler host="$srv$*" savedsearch_name="$st$"
-| fields _time host user, app, priority, status, scheduled_time, window_time, member_label, sid</query>
+| fields _time host user, app, priority, status, scheduled_time, window_time, member_label, sid, dispatch_time, run_time
+| eval Delay=dispatch_time - scheduled_time
+| eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| rename host AS Host,
+    user AS User,
+    app AS Application,
+    status AS Status,
+    ssid AS "Short SID (for inspection)"</query>
 	</search>
+	<drilldown>
+	  <condition field="Short SID (for inspection)">
+	    <unset token="sched_run"/>
+	    <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.Host$]]></link>
+	  </condition>
+	</drilldown>
       </table>
     </panel>
   </row>

@@ -3,7 +3,6 @@
   
   <collection label="Scheduled Searches">
     <view name="sto_scheduled_overview" />
-    <view name="sto_scheduled_runs" />
     <view name="sto_scheduler_assistant" />
     <view name="sto_scheduler_rebuild" />
   </collection>
@@ -27,4 +26,5 @@
     <view name="sto_vji_diff" />
     <view name="sto_deboer" />
   </collection>
+  <view name="search" />
 </nav>

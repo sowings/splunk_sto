@@ -22,6 +22,8 @@
     <view name="sto_quadrant" />
   </collection>
   <collection label="Inspection">
+    <view name="sto_issues" />
+    <divider />
     <view name="sto_vji" />
     <view name="sto_vji_diff" />
     <view name="sto_deboer" />

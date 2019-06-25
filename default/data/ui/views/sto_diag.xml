@@ -1,0 +1,42 @@
+<dashboard>
+  <row>
+    <panel>
+      <html>
+	You'll need to retrieve the following logs from a search head diag:
+	<ul>
+	  <li>log/scheduler.log (_internal / scheduler)</li>
+	  <li>log/audit.log (_audit / audittrail)</li>
+	  <li>introspection/resource_usage.log (_introspection / splunk_resource_usage)</li>
+	</ul>
+	These will come from an indexer's diag:
+	<ul>
+	  <li>log/remote_searches.log (_interanl / splunkd_remote_searches)</li>
+	</ul>
+      </html>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+	This shell script may come in handy. Run this at the top-level
+	directory of a diag.
+
+	default_hn=`cat etc/system/local/inputs.conf`
+	target_idx=foo
+	cd log
+	for l in scheduler.log* ; do
+	    splunk add oneshot -index ${target_idx} -source $l -rename-source /opt/splunk/var/log/splunk/scheduler.log -sourcetype scheduler -host ${default_hn} ;
+	done
+	for l in audit.log* ; do
+	    splunk add oneshot -index ${target_idx} -source $l -rename-source audittrail -sourcetype audittrail -host ${default_hn} ;
+	done
+	cd ../introspection
+	for l in resource_usage.log* ; do
+	    splunk add oneshot -index ${target_idx} -source $l -rename-source /opt/splunk/var/log/splunk/resource_usage.log -sourcetype splunk_resource_usage -host ${default_hn} ;
+	done
+
+      </html>
+    </panel>
+  </row>
+</dashboard>

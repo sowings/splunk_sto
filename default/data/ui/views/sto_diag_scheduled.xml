@@ -1,0 +1,96 @@
+<form>
+  <label>STO - Diag Spelunking - Scheduled Searches</label>
+  <fieldset>
+    <input type="text" token="idx" searchWhenChanged="true">
+      <label>Index</label>
+      <change>
+	<unset token="ss_name"/>
+      </change>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Saved Search Executions</title>
+	<search>
+	  <query><![CDATA[index=$idx$ sourcetype=scheduler source=*scheduler.log*
+TERM(status=success)
+| eval latency=if((dispatch_time-scheduled_time)<=window_time,0,(dispatch_time-(scheduled_time - window_time)))
+| stats count, avg(latency) AS avg_latency, max(latency) AS max_latency, avg(run_time) AS avg_run, stdev(run_time) AS stdev, max(run_time) AS max_run by savedsearch_name
+| eval avg_run=round(avg_run, 3), avg_latency=round(avg_latency, 3), two_sigma=avg_run + 2 * stdev
+| eval over=if(max_run > two_sigma, "outside normal", "normal")
+| fields - two_sigma stdev
+| sort 0 - count
+| rename savedsearch_name AS "Saved Search",
+    count AS Runs,
+    avg_latency AS "Avg. Latency",
+    max_latency AS "Max. Latency",
+    avg_run AS "Avg. Run Time",
+    max_run AS "Max. Run Time",
+    over AS "Two Sigma Runtime"]]>
+	  </query>
+	</search>
+	<drilldown>
+	  <set token="ss_name">$row.Saved Search$</set>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row depends="$ss_name$">
+    <panel>
+      <table>
+	<title>Recent Runs - ($ss_name$)</title>
+	<fields>["_time","Host","User","Application","priority","Status","scheduled_time","window_time","Delay","Run Time","Short SID (for inspection)"]</fields>
+	<search>
+	  <query>index=$idx$ sourcetype=scheduler source=*scheduler.log*
+TERM(status=success) savedsearch_name="$ss_name$"
+| fields _time host user, app, priority, status, scheduled_time, window_time, member_label, sid, dispatch_time, run_time
+| eval Delay=dispatch_time - scheduled_time
+| eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
+| rename host AS Host,
+    user AS User,
+    app AS Application,
+    status AS Status,
+    run_time AS "Run Time",
+	  ssid AS "Short SID (for inspection)"</query>
+	</search>
+	<drilldown>
+	  <condition field="Short SID (for inspection)">
+	    <unset token="sched_run"/>
+	    <link>sto_vji</link>
+	  </condition>
+	  <condition field="*">
+	    <set token="sched_run">yes</set>
+	    <set token="sched_run_time">$row.scheduled_time$</set>
+	    <set token="sched_comp_time">$row._time$</set>
+	  </condition>
+	</drilldown>
+      </table>
+    </panel>
+  </row>
+
+  <row depends="$sched_run$">
+    <panel>
+      <single>
+	<title>Clickies</title>
+	<html>$sched_run_time$ $sched_comp_time$</html>
+      </single>
+    </panel>
+    <panel>
+      <table>
+	<title>Hostwide Introspection Around the Runtime </title>
+<!-- Sample time from click 2019-06-03T03:04:11.495-07:00 -->
+	<search>
+	  <query>index=$idx$ sourcetype=splunk_resource_usage component::Hostwide
+earliest=$sched_run_time$
+[ | makeresults | eval latest=strptime("$sched_comp_time$", "%Y-%m-%dT%H:%M:%S.%3N%:z") | fields latest ]
+	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+</form>
+

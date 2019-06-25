@@ -21,11 +21,8 @@
 	  <query>index=_internal source=*scheduler.log* sourcetype=scheduler
 savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
 | eval splunk_server=host
-| join type=left savedsearch_name splunk_server
-[ | inputlookup sto_asset_map_datamodel
-| eval savedsearch_name="_ACCELERATE_DM_" . 'eai:acl.app' . "_" . title . "_ACCELERATE_"
+| lookup sto_asset_map_datamodel.csv splunk_server AS host ss_name AS savedsearch_name  OUTPUT title eai:acl.app cron_schedule is_scheduled
 | rename title AS model, eai:acl.app AS app
-| table model app savedsearch_name  cron_schedule is_scheduled  splunk_server] 
 | fields _time host status sid member_label run_time app model cron_schedule
 | rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
 | eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
@@ -53,7 +50,7 @@ savedsearch_name="_ACCELERATE_DM_*_ACCELERATE_"
 	<title>Users Encountering Queued Searches</title>
 	<search>
 	  <query>index=_internal sourcetype=splunkd source=*splunkd.log*
-component=DispatchManager enforceQuotas 
+DispatchManager enforceQuotas 
 | stats max(_time) AS most_recent, count by username host reason
 | sort 0 - most_recent
 | convert ctime(most_recent)
@@ -74,18 +71,14 @@ component=DispatchManager enforceQuotas
       <table>
 	<title>Saved Searches Running Over Period</title>
 	<option name="drilldown">row</option>
-	<fields>["_time","Host","Status","Detail","Short SID (for inspection)"]</fields>
+	<fields>["_time","Host","Status","Run Time", "Detail","Short SID (for inspection)"]</fields>
 	<!-- Part of the rationale of this search is that the fastest we can
              run a scheduled search is every minute; we start with this as a
              base list before we go comparing against the actual period of
              the search. -->
 	<search>
-	  <query>index=_internal sourcetype=scheduler source=*/scheduler.log*  component=SavedSplunker log_level=INFO TERM(status=success) run_time>60
-| eval splunk_server=host
-| join type=left savedsearch_name splunk_server
-[ | inputlookup sto_asset_map_savedsearch
-| rename object_title AS savedsearch_name
-| table savedsearch_name cron_schedule is_scheduled splunk_server] 
+	  <query>index=_internal sourcetype=scheduler source=*/scheduler.log* SavedSplunker log_level=INFO TERM(status=success) run_time>60
+| lookup sto_asset_map_savedsearch splunk_server AS host, object_title AS savedsearch_name OUTPUT is_scheduled cron_schedule
 | fields _time host status sid member_label run_time cron_schedule
 | rename comment AS "Cannot use a host= filter because of SHC delegation; might get false positives"
 | eval ssid=replace(sid, "^(\w{10}).*([\w\.]{5})$", "\1...\2")
@@ -94,8 +87,11 @@ component=DispatchManager enforceQuotas
 | where run_time > cron_minimum_freq
 | eval runtime_pp=case(isnull(run_time), null(), isnull(cron_minimum_freq), "Ran for " . run_time . " (sec)", run_time > cron_minimum_freq, "Ran for " . run_time . " (sec), over expected interval of " . cron_minimum_freq . " (sec)", 1=1, "Ran for " . run_time . " (sec)")
 | eval Detail=coalesce(runtime_pp, reason)
-| table _time host, high_status, Detail, sid, ssid
-| rename host AS Host, high_status AS Status, ssid AS "Short SID (for inspection)"</query>
+| table _time host, high_status, Detail, run_time, sid, ssid
+| rename host AS Host,
+    high_status AS Status,
+    run_time AS "Run Time",
+    ssid AS "Short SID (for inspection)"</query>
 	</search>
 	<drilldown>
 	  <link><![CDATA[sto_vji?form.sid=$row.sid$&form.srv=$row.Host$]]></link>

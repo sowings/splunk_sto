@@ -1,0 +1,25 @@
+<form>
+  <label>Search Host Performance Detail</label>
+
+  <fieldset>
+    <input type="text" token="srch_host">
+      <label>Host</label>
+    </input>
+    <input type="text" token="sid">
+      <label>(Remote) Search ID</label>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+	<title>Starting Out</title>
+	<search>
+	  <query>
+	  </query>
+	</search>
+      </table>
+    </panel>
+  </row>
+
+</form>
